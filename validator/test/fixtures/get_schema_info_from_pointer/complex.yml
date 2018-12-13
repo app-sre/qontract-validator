@@ -1,0 +1,22 @@
+magic: &magic
+  magic_object: is_here
+
+schema:
+  type: object
+  properties:
+    a:
+      type: array
+      items:
+        b:
+          type: array
+          items:
+            c:
+              type: object
+              properties:
+                d:
+                  type: object
+                  properties:
+                    e:
+                      <<: *magic
+
+ptr: /a/20/b/17/c/d/e
