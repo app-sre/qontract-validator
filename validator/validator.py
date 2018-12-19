@@ -349,11 +349,7 @@ def main(only_errors, schemas_bundle, data_bundle):
 
     # Calculate errors
     results = results_schemas + results_files + results_refs
-
-    errors = [
-        r for r in results
-        if r['result']['status'] == 'ERROR'
-    ]
+    errors = list(filter(lambda x: x['result']['status'] == 'ERROR', results))
 
     # Output
     if only_errors:
