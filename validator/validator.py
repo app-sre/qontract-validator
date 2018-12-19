@@ -304,7 +304,7 @@ def get_schema_info_from_pointer(schema, ptr):
             info = info["items"]
             ptr_list = ptr_list[2:]
         else:
-            raise Exception("does this even make sense?")
+            raise Exception("Unknown type")
 
     return info
 
