@@ -1,0 +1,10 @@
+magic: &magic
+  magic_object: is_here
+
+schema:
+  type: object
+  properties:
+    abc:
+      <<: *magic
+
+ptr: /abc
