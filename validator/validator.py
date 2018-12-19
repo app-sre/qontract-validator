@@ -322,8 +322,11 @@ def get_schema_info_from_pointer(schema, ptr):
 @click.argument('schemas-bundle')
 @click.argument('data-bundle')
 def main(only_errors, schemas_bundle, data_bundle):
-    bundle = json.load(open(data_bundle))
-    schemas_bundle = json.load(open(schemas_bundle))
+    with open(data_bundle) as data_bundle_fd:
+        bundle = json.load(data_bundle_fd)
+
+    with open(schemas_bundle) as schemas_bundle_fd:
+        schemas_bundle = json.load(schemas_bundle_fd)
 
     # Validate schemas
     results_schemas = [
