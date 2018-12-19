@@ -1,5 +1,5 @@
 import validator.validator as validator
-from .fixtures import Fixtures
+from validator.test.fixtures import Fixtures
 
 
 class TestGetSchemaInfoFromPointer(object):
