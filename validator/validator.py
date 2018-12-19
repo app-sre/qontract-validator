@@ -232,7 +232,7 @@ def validate_ref(schemas_bundle, bundle, filename, data, ptr, ref):
     schema_info = get_schema_info_from_pointer(schema, ptr)
     expected_schema = schema_info.get('$schemaRef')
 
-    if expected_schema and expected_schema != ref_data['$schema']:
+    if expected_schema is not None and expected_schema != ref_data['$schema']:
         return ValidationError(
             kind,
             filename,
