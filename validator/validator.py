@@ -137,7 +137,7 @@ def get_handlers(schemas_bundle):
     scheme detected for absolute or relative file paths.
     """
     return {
-        '': lambda s: schemas_bundle[s]
+        '': lambda x: schemas_bundle[x]
     }
 
 
