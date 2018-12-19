@@ -163,10 +163,6 @@ def validate_schema(schemas_bundle, filename, schema_data):
         handlers=get_handlers(schemas_bundle)
     )
 
-    jsonschema.Draft4Validator.check_schema(schema_data)
-    validator = jsonschema.Draft4Validator(meta_schema, resolver=resolver)
-    validator.validate(schema_data)
-
     try:
         jsonschema.Draft4Validator.check_schema(schema_data)
         validator = jsonschema.Draft4Validator(meta_schema, resolver=resolver)
@@ -279,10 +275,6 @@ def find_refs(obj, ptr=None, refs=None):
             find_refs(item, new_ptr, refs)
 
     return refs
-
-
-def temp_patch(uri):
-    return uri if uri[0] == '/' else '/' + uri
 
 
 def get_schema_info_from_pointer(schema, ptr):
