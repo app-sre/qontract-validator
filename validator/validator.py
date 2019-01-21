@@ -228,7 +228,17 @@ def validate_ref(schemas_bundle, bundle, filename, data, ptr, ref):
             ref=ref['$ref']
         )
 
-    schema = schemas_bundle[data['$schema']]
+    try:
+        schema = schemas_bundle[data['$schema']]
+    except KeyError as e:
+        return ValidationError(
+            kind,
+            filename,
+            "SCHEMA_NOT_FOUND",
+            e,
+            ref=ref['$ref']
+        )
+
     schema_info = get_schema_info_from_pointer(schema, ptr)
     expected_schema = schema_info.get('$schemaRef')
 
