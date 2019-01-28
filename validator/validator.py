@@ -190,7 +190,11 @@ def validate_file(schemas_bundle, filename, data):
     if not schema_url.startswith('http') and not schema_url.startswith('/'):
         schema_url = '/' + schema_url
 
-    schema = schemas_bundle[schema_url]
+    try:
+        schema = schemas_bundle[schema_url]
+    except KeyError as e:
+        return ValidationError(kind, filename, "SCHEMA_NOT_FOUND", e,
+                               schema_url=schema_url)
 
     try:
         resolver = jsonschema.RefResolver(
