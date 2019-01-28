@@ -1,4 +1,3 @@
-import copy
 import json
 import logging
 import sys
@@ -169,11 +168,11 @@ def validate_schema(schemas_bundle, filename, schema_data):
         validator.validate(schema_data)
     except jsonschema.ValidationError as e:
         return ValidationError(kind, filename, "VALIDATION_ERROR", e,
-                               meta_schema_url)
+                               meta_schema_url=meta_schema_url)
     except (jsonschema.SchemaError,
             jsonschema.exceptions.RefResolutionError) as e:
         return ValidationError(kind, filename, "SCHEMA_ERROR", e,
-                               meta_schema_url)
+                               meta_schema_url=meta_schema_url)
 
     return ValidationOK(kind, filename, meta_schema_url)
 
@@ -191,7 +190,11 @@ def validate_file(schemas_bundle, filename, data):
     if not schema_url.startswith('http') and not schema_url.startswith('/'):
         schema_url = '/' + schema_url
 
-    schema = schemas_bundle[schema_url]
+    try:
+        schema = schemas_bundle[schema_url]
+    except KeyError as e:
+        return ValidationError(kind, filename, "SCHEMA_NOT_FOUND", e,
+                               schema_url=schema_url)
 
     try:
         resolver = jsonschema.RefResolver(
@@ -239,7 +242,17 @@ def validate_ref(schemas_bundle, bundle, filename, data, ptr, ref):
             ref=ref['$ref']
         )
 
-    schema_info = get_schema_info_from_pointer(schema, ptr)
+    try:
+        schema_info = get_schema_info_from_pointer(schema, ptr)
+    except KeyError:
+        return ValidationError(
+            kind,
+            filename,
+            "SCHEMA_DEFINITION_NOT_FOUND",
+            e,
+            ref=ref['$ref']
+        )
+
     expected_schema = schema_info.get('$schemaRef')
 
     if expected_schema is not None and expected_schema != ref_data['$schema']:
@@ -288,33 +301,13 @@ def find_refs(obj, ptr=None, refs=None):
 
 
 def get_schema_info_from_pointer(schema, ptr):
-    info = copy.deepcopy(schema)
-    ptr_list = ptr.split('/')[1:]
+    info = schema
 
-    # assuming schema is type: object, other cases are not implemented
-    info = info["properties"]
-
-    while True:
-        if len(ptr_list) == 1:
-            return info[ptr_list[0]]
-
-        if len(ptr_list) == 2:
-            try:
-                if info[ptr_list[0]]["type"] == "array":
-                    return info[ptr_list[0]]["items"]
-            except IndexError:
-                pass
-
-        info = info[ptr_list[0]]
-
-        if info["type"] == "object":
-            info = info["properties"]
-            ptr_list = ptr_list[1:]
-        elif info["type"] == "array":
-            info = info["items"]
-            ptr_list = ptr_list[2:]
+    for chunk in ptr.split("/")[1:]:
+        if chunk.isdigit():
+            info = info['items']
         else:
-            raise Exception("Unknown type")
+            info = info['properties'][chunk]
 
     return info
 

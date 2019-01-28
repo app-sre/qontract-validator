@@ -7,16 +7,18 @@ schema:
     a:
       type: array
       items:
-        b:
-          type: array
-          items:
-            c:
-              type: object
+        properties:
+          b:
+            type: array
+            items:
               properties:
-                d:
+                c:
                   type: object
                   properties:
-                    e:
-                      <<: *magic
+                    d:
+                      type: object
+                      properties:
+                        e:
+                          <<: *magic
 
 ptr: /a/20/b/17/c/d/e
