@@ -314,14 +314,12 @@ def get_schema_info_from_pointer(schema, ptr):
 
 @click.command()
 @click.option('--only-errors', is_flag=True, help='Print only errors')
-@click.argument('schemas-bundle')
-@click.argument('data-bundle')
-def main(only_errors, schemas_bundle, data_bundle):
-    with open(data_bundle) as data_bundle_fd:
-        bundle = json.load(data_bundle_fd)
+@click.argument('bundle', type=click.File('rb'))
+def main(only_errors, bundle):
+    bundle = json.load(bundle)
 
-    with open(schemas_bundle) as schemas_bundle_fd:
-        schemas_bundle = json.load(schemas_bundle_fd)
+    data_bundle = bundle['data']
+    schemas_bundle = bundle['schemas']
 
     # Validate schemas
     results_schemas = [
@@ -332,13 +330,14 @@ def main(only_errors, schemas_bundle, data_bundle):
     # validate datafiles
     results_files = [
         validate_file(schemas_bundle, filename, data).dump()
-        for filename, data in bundle.items()
+        for filename, data in data_bundle.items()
     ]
 
     # validate refs
     results_refs = [
-        validate_ref(schemas_bundle, bundle, filename, data, ptr, ref).dump()
-        for filename, data in bundle.items()
+        validate_ref(schemas_bundle, data_bundle,
+                     filename, data, ptr, ref).dump()
+        for filename, data in data_bundle.items()
         for ptr, ref in find_refs(data)
     ]
 
