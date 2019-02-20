@@ -244,7 +244,7 @@ def validate_ref(schemas_bundle, bundle, filename, data, ptr, ref):
 
     try:
         schema_info = get_schema_info_from_pointer(schema, ptr)
-    except KeyError:
+    except KeyError as e:
         return ValidationError(
             kind,
             filename,
