@@ -11,6 +11,11 @@ import requests
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 
+try:
+    basestring
+except NameError:
+    basestring = str
+
 
 class IncorrectSchema(Exception):
     def __init__(self, got, expecting):
@@ -255,14 +260,23 @@ def validate_ref(schemas_bundle, bundle, filename, data, ptr, ref):
 
     expected_schema = schema_info.get('$schemaRef')
 
-    if expected_schema is not None and expected_schema != ref_data['$schema']:
-        return ValidationError(
-            kind,
-            filename,
-            "INCORRECT_SCHEMA",
-            IncorrectSchema(ref_data['$schema'], expected_schema),
-            ref=ref['$ref']
-        )
+    if expected_schema is not None:
+        if isinstance(expected_schema, basestring):
+            if expected_schema != ref_data['$schema']:
+                return ValidationError(
+                    kind,
+                    filename,
+                    "INCORRECT_SCHEMA",
+                    IncorrectSchema(ref_data['$schema'], expected_schema),
+                    ref=ref['$ref']
+                )
+        else:
+            try:
+                validator = jsonschema.Draft4Validator(expected_schema)
+                validator.validate(ref_data)
+            except jsonschema.exceptions.ValidationError as e:
+                return ValidationError(kind, filename,
+                                       "SCHEMA_REF_VALIDATION_ERROR", e)
 
     return ValidationRefOK(kind, filename, ref['$ref'], data['$schema'])
 
