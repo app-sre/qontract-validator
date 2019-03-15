@@ -50,6 +50,10 @@ def bundle_resources(resource_dir):
     return bundle
 
 
+def bundle_graphql(graphql_schema_file):
+    return anymarkup.parse_file(graphql_schema_file, force_types=None)
+
+
 def fix_dir(directory):
     if directory[-1] == "/":
         directory = directory[:-1]
@@ -59,9 +63,10 @@ def fix_dir(directory):
 @click.command()
 @click.option('--resolve', is_flag=True, help='Resolve references')
 @click.argument('schema-dir', type=click.Path(exists=True))
+@click.argument('graphql-schema-file', type=click.Path(exists=True))
 @click.argument('data-dir', type=click.Path(exists=True))
 @click.argument('resource-dir', type=click.Path(exists=True))
-def main(resolve, schema_dir, data_dir, resource_dir):
+def main(resolve, schema_dir, graphql_schema_file, data_dir, resource_dir):
     schema_dir = fix_dir(schema_dir)
     data_dir = fix_dir(data_dir)
     resource_dir = fix_dir(resource_dir)
@@ -69,6 +74,7 @@ def main(resolve, schema_dir, data_dir, resource_dir):
     bundle = {}
 
     bundle['schemas'] = bundle_datafiles(schema_dir)
+    bundle['graphql'] = bundle_graphql(graphql_schema_file)
     bundle['data'] = bundle_datafiles(data_dir)
     bundle['resources'] = bundle_resources(resource_dir)
 
