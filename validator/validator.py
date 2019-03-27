@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import sys
 
 from enum import Enum
@@ -8,6 +9,12 @@ import anymarkup
 import click
 import jsonschema
 import requests
+
+import yaml
+try:
+    from yaml import CLoader as yamlLoader, CDumper as yamlDumper
+except ImportError:
+    from yaml import yamlLoader, yamlDumper
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 
@@ -35,6 +42,7 @@ class ValidatedFileKind(Enum):
     SCHEMA = "SCHEMA"
     DATA_FILE = "FILE"
     REF = "REF"
+    RESOURCE_PATH = "RESOURCE_PATH"
 
 
 class ValidationResult(object):
@@ -280,6 +288,83 @@ def validate_ref(schemas_bundle, bundle, filename, data, ptr, ref):
 
     return ValidationRefOK(kind, filename, ref['$ref'], data['$schema'])
 
+def validate_resource_paths(schemas_bundle, bundle, filename, data, ptr, res):
+    kind = ValidatedFileKind.RESOURCE_PATH
+
+    valid_json_ext = ('.json',)
+    valid_yaml_ext = ('.yml', '.yaml')
+    valid_extensions = valid_json_ext + valid_yaml_ext
+
+    logging.info('validating resource path: {}'.format(res['path']))
+
+    file_ext = os.path.splitext(res["path"])
+    real_res_path = 'resources' + res['path']
+
+    # Check if file has a valid extension
+    if len(file_ext) != 2 or file_ext[1] not in valid_extensions:
+        return ValidationError(
+            kind,
+            filename,
+            "MISSING_EXTENSION",
+            "The resource file extension should end in one of the following: %s" % ', '.join(valid_extensions),
+            res=res['path']
+        )
+
+    # Try to open and parse valid yaml
+    try:
+        with open(real_res_path, 'r') as fh:
+            if file_ext[1] in valid_yaml_ext:
+                resourcedata = yaml.load(fh, Loader=yamlLoader)
+            if file_ext[1] in valid_json_ext:
+                resourcedata = json.load(fh)
+    except IOError:
+        return ValidationError(
+            kind,
+            filename,
+            "FILE_NOT_FOUND",
+            "Resource file could not be found: {}".format(real_res_path),
+            res=res['path']
+        )
+    except yaml.YAMLError as e:
+        return ValidationError(
+            kind,
+            filename,
+            "INVALID_YAML",
+            "Resource file could not be parsed as valid YAML: {}".format(real_res_path),
+            res=res['path']
+        )
+    except json.JSONDecodeError as e:
+        return ValidationError(
+            kind,
+            filename,
+            "INVALID_JSON",
+            "Resource file could not be parsed as valid JSON: {}".format(real_res_path),
+            res=res['path']
+        )
+
+    # Ensure our resource has basic fields common to all kubernetes objects
+    if not all (k in resourcedata for k in ('apiVersion', 'metadata', 'kind')):
+        return ValidationError(
+            kind,
+            filename,
+            "INVALID_OBJECT",
+            "Resource file is not a valid kubernetes object: {}".format(real_res_path),
+            res=res['path']
+        )
+    
+    # Ensure configmaps and secrets have a data field
+    if resourcedata['kind'] in ('ConfigMap', 'Secret'):
+        if not 'data' in resourcedata:
+            return ValidationError(
+                kind,
+                filename,
+                "INVALID_OBJECT",
+                "ConfigMap or Secret resource file is missing a data field: {}".format(real_res_path),
+                res=res['path']
+            )
+
+    return ValidationRefOK(kind, filename, res['path'], data['$schema'])
+
 
 def fetch_schema(schema_url):
     if schema_url.startswith('http'):
@@ -312,6 +397,28 @@ def find_refs(obj, ptr=None, refs=None):
             find_refs(item, new_ptr, refs)
 
     return refs
+
+def find_resource_paths(obj, ptr=None, paths=None):
+    if paths is None:
+        paths = []
+
+    if ptr is None:
+        ptr = ""
+
+    if isinstance(obj, dict):
+        # is this a ref?
+        if 'provider' in obj and obj['provider'] == 'resource' and 'path' in obj:
+            paths.append((ptr, obj))
+        else:
+            for key, item in obj.items():
+                new_ptr = "{}/{}".format(ptr, key)
+                find_resource_paths(item, new_ptr, paths)
+    elif isinstance(obj, list):
+        for index, item in enumerate(obj):
+            new_ptr = "{}/{}".format(ptr, index)
+            find_resource_paths(item, new_ptr, paths)
+
+    return paths
 
 
 def get_schema_info_from_pointer(schema, ptr):
@@ -355,8 +462,16 @@ def main(only_errors, bundle):
         for ptr, ref in find_refs(data)
     ]
 
+    # validate resource paths
+    results_res_paths = [
+        validate_resource_paths(schemas_bundle, data_bundle,
+                                filename, data, ptr, res).dump()
+        for filename, data in data_bundle.items()
+        for ptr, res in find_resource_paths(data)
+    ]
+
     # Calculate errors
-    results = results_schemas + results_files + results_refs
+    results = results_schemas + results_files + results_refs + results_res_paths
     errors = list(filter(lambda x: x['result']['status'] == 'ERROR', results))
 
     # Output
