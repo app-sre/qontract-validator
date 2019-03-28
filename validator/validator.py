@@ -14,7 +14,7 @@ import yaml
 try:
     from yaml import CLoader as yamlLoader, CDumper as yamlDumper
 except ImportError:
-    from yaml import yamlLoader, yamlDumper
+    from yaml import Loader as yamlLoader, Dumper as yamlDumper
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 
