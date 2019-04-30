@@ -82,6 +82,8 @@ docker run -v <mounts> \
     qontract-bundler /schemas /graphql-schema/schema.yml /data /resources
 ```
 
+## Validating the bundle: `qontract-validator`
+
 ### Overview
 
 This command validates the `data` key in the bundle (`DATA_DIR`) against the json schemas in the `schemas` key (`SCHEMA_DIR`).
@@ -111,7 +113,6 @@ docker run -v $PWD:/data:z \
     qontract-validator --only-errors /data/data.json
 ```
 
-## Validating the bundle: `qontract-validator`
 
 ## Licence
 
