@@ -18,7 +18,7 @@ setup(
         "Click==7.0",
         "enum34==1.1.6",
         "jsonschema==2.6.0",
-        "PyYAML==3.13",
+        "PyYAML==5.1.2",
         "requests==2.20.0"
     ],
 
