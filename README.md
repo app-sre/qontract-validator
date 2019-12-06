@@ -120,4 +120,4 @@ docker run -v $PWD:/data:z \
 
 ## Authors
 
-These tools have been written by the [Red Hat App-SRE Team](sd-app-sre@redhat.com).
+These tools have been written by the [Red Hat App-SRE Team](mailto:sd-app-sre@redhat.com).
