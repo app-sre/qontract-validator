@@ -116,8 +116,8 @@ docker run -v $PWD:/data:z \
 
 ## Licence
 
-[Apache License Version 2.0](LICENSE).
+[Apache License Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
 
 ## Authors
 
-These tools have been written by the [Red Hat App-SRE Team](sd-app-sre@redhat.com).
+These tools have been written by the [Red Hat App-SRE Team](mailto:sd-app-sre@redhat.com).
