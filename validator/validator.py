@@ -37,41 +37,28 @@ class ValidatedFileKind(Enum):
     REF = "REF"
 
 
-class ValidationResult(object):
-    def summary(self):
-        status = 'OK' if self.status else 'ERROR'
-        summary = "{}: {}".format(status, self.filename)
-
-        if hasattr(self, 'ref'):
-            summary += " ({})".format(getattr(self, 'ref'))
-
-        if hasattr(self, 'schema_url'):
-            summary += " ({})".format(getattr(self, 'schema_url'))
-
-        return summary
-
-
-class ValidationOK(ValidationResult):
+class ValidationOK():
     status = True
 
     def __init__(self, kind, filename, schema_url):
         self.kind = kind
         self.filename = filename
         self.schema_url = schema_url
+        self.summary = "OK: {} ({})".format(self.filename, self.schema_url)
 
     def dump(self):
         return {
             "filename": self.filename,
             "kind": self.kind.value,
             "result": {
-                "summary": self.summary(),
+                "summary": self.summary,
                 "status": "OK",
                 "schema_url": self.schema_url,
             }
         }
 
 
-class ValidationRefOK(ValidationResult):
+class ValidationRefOK():
     status = True
 
     def __init__(self, kind, filename, ref, schema_url):
@@ -79,6 +66,9 @@ class ValidationRefOK(ValidationResult):
         self.filename = filename
         self.schema_url = schema_url
         self.ref = ref
+        self.summary = "OK: {} ({}) ({})".format(self.filename,
+                                                 self.ref,
+                                                 self.schema_url)
 
     def dump(self):
         return {
@@ -86,7 +76,7 @@ class ValidationRefOK(ValidationResult):
             "ref": self.ref,
             "kind": self.kind.value,
             "result": {
-                "summary": self.summary(),
+                "summary": self.summary,
                 "status": "OK",
                 "schema_url": self.schema_url,
                 "ref": self.ref,
@@ -94,7 +84,7 @@ class ValidationRefOK(ValidationResult):
         }
 
 
-class ValidationError(ValidationResult):
+class ValidationError():
     status = False
 
     def __init__(self, kind, filename, reason, error, **kwargs):
@@ -103,10 +93,11 @@ class ValidationError(ValidationResult):
         self.reason = reason
         self.error = error
         self.kwargs = kwargs
+        self.summary = "ERROR: {}".format(self.filename)
 
     def dump(self):
         result = {
-            "summary": self.summary(),
+            "summary": self.summary,
             "status": "ERROR",
             "reason": self.reason,
             "error": self.error.__str__()
