@@ -1,4 +1,5 @@
 import json
+import yaml
 import logging
 import sys
 
@@ -35,6 +36,7 @@ class ValidatedFileKind(Enum):
     SCHEMA = "SCHEMA"
     DATA_FILE = "FILE"
     REF = "REF"
+    NONE = "NONE"
 
 
 class ValidationResult(object):
@@ -222,6 +224,15 @@ def validate_file(schemas_bundle, filename, data):
     return ValidationOK(kind, filename, schema_url)
 
 
+def validate_resource(schemas_bundle, filename, resource):
+    content = resource['content']
+    if '$schema' not in content:
+        return ValidationOK(ValidatedFileKind.NONE, filename, '')
+
+    data = yaml.load(content, Loader=yaml.FullLoader)
+    return validate_file(schemas_bundle, filename, data)
+
+
 def validate_ref(schemas_bundle, bundle, filename, data, ptr, ref):
     kind = ValidatedFileKind.REF
 
@@ -334,6 +345,7 @@ def main(only_errors, bundle):
 
     data_bundle = bundle['data']
     schemas_bundle = bundle['schemas']
+    resources_bundle = bundle['resources']
 
     # Validate schemas
     results_schemas = [
@@ -345,6 +357,13 @@ def main(only_errors, bundle):
     results_files = [
         validate_file(schemas_bundle, filename, data).dump()
         for filename, data in data_bundle.items()
+    ]
+
+    # validate resources
+    results_files = [
+        validate_resource(schemas_bundle, filename, resource).dump()
+        for filename, resource in resources_bundle.items()
+
     ]
 
     # validate refs
