@@ -351,7 +351,7 @@ def main(only_errors, bundle):
     ]
 
     # validate resources
-    results_files = [
+    results_resources = [
         validate_resource(schemas_bundle, filename, resource).dump()
         for filename, resource in resources_bundle.items()
 
@@ -366,7 +366,8 @@ def main(only_errors, bundle):
     ]
 
     # Calculate errors
-    results = results_schemas + results_files + results_refs
+    results = \
+        results_schemas + results_files + results_resources + results_refs
     errors = list(filter(lambda x: x['result']['status'] == 'ERROR', results))
 
     # Output
