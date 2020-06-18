@@ -37,6 +37,7 @@ class ValidatedFileKind(Enum):
     DATA_FILE = "FILE"
     REF = "REF"
     NONE = "NONE"
+    UNIQUENESS = "UNIQUENESS"
 
 
 class ValidationOK():
@@ -215,6 +216,34 @@ def validate_file(schemas_bundle, filename, data):
     return ValidationOK(kind, filename, schema_url)
 
 
+def validate_uniqueness(data_bundle, unique_fields):
+    kind = ValidatedFileKind.UNIQUENESS
+
+    schema_pairs = {}
+    for filename, data in data_bundle.items():
+        schema = data['$schema']
+
+        if schema not in unique_fields.keys():
+            continue
+
+        for field in unique_fields[schema]:
+            pair = (schema, field, data[field])
+            schema_pairs.setdefault(pair, [])
+            schema_pairs[pair].append(filename)
+
+    errors = []
+    for pair, filenames in schema_pairs.items():
+        if len(filenames) > 1:
+            error_msg = "field: '{}', files: {}".format(pair[1],
+                                                        ", ".join(filenames))
+
+            error = ValidationError(kind, filenames[0], 'NOT_UNIQUE',
+                                    error_msg)
+            errors.append(error)
+
+    return errors
+
+
 def validate_resource(schemas_bundle, filename, resource):
     content = resource['content']
     if '$schema' not in content:
@@ -350,6 +379,18 @@ def main(only_errors, bundle):
         for filename, data in data_bundle.items()
     ]
 
+    # validate uniquess
+    unique_fields = {
+        filename: schema['$uniqueFields']
+        for filename, schema in schemas_bundle.items()
+        if schema.get('$uniqueFields')
+    }
+
+    results_uniqueness = [
+        r.dump()
+        for r in validate_uniqueness(data_bundle, unique_fields)
+    ]
+
     # validate resources
     results_resources = [
         validate_resource(schemas_bundle, filename, resource).dump()
@@ -367,7 +408,9 @@ def main(only_errors, bundle):
 
     # Calculate errors
     results = \
-        results_schemas + results_files + results_resources + results_refs
+        results_schemas + results_files + results_uniqueness + \
+        results_resources + results_refs
+
     errors = list(filter(lambda x: x['result']['status'] == 'ERROR', results))
 
     # Output
