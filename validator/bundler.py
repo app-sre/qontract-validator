@@ -93,7 +93,7 @@ def fix_dir(directory):
 @click.argument('graphql-schema-file', type=click.Path(exists=True))
 @click.argument('data-dir', type=click.Path(exists=True))
 @click.argument('resource-dir', type=click.Path(exists=True))
-@click.argument('git-commit', type=click.Path(exists=True))
+@click.argument('git-commit')
 def main(resolve, thread_pool_size,
          schema_dir, graphql_schema_file, data_dir, resource_dir,
          git_commit):
