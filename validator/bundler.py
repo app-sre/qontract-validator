@@ -12,6 +12,8 @@ import json
 from multiprocessing.dummy import Pool as ThreadPool
 
 
+logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
+
 def bundle_datafiles(data_dir, thread_pool_size):
     specs = init_specs(data_dir)
     pool = ThreadPool(thread_pool_size)
@@ -30,7 +32,7 @@ def bundle_datafile_spec(spec):
     path = os.path.join(root, name)
     rel_abs_path = path[len(work_dir):]
 
-    sys.stderr.write("Processing: {}\n".format(rel_abs_path))
+    logging.info("Processing: {}\n".format(rel_abs_path))
 
     return rel_abs_path, anymarkup.parse_file(path, force_types=None)
 
@@ -48,7 +50,7 @@ def bundle_resource_spec(spec):
     name = spec['name']
     path = os.path.join(root, name)
     rel_abs_path = path[len(work_dir):]
-    sys.stderr.write("Resource: {}\n".format(rel_abs_path))
+    logging.info("Resource: {}\n".format(rel_abs_path))
 
     content = open(path, 'r').read()
 

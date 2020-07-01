@@ -10,7 +10,7 @@ import click
 import jsonschema
 import requests
 
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
 
 try:
     basestring
