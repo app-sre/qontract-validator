@@ -4,6 +4,7 @@ import hashlib
 import os
 import re
 import sys
+import logging
 
 import anymarkup
 import click
