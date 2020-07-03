@@ -4,6 +4,7 @@ import logging
 import sys
 
 from enum import Enum
+from functools import lru_cache
 
 import anymarkup
 import click
@@ -152,7 +153,6 @@ def validate_schema(schemas_bundle, filename, schema_data):
         meta_schema = schemas_bundle[meta_schema_url]
     else:
         meta_schema = fetch_schema(meta_schema_url)
-        schemas_bundle[meta_schema_url] = meta_schema
 
     resolver = jsonschema.RefResolver(
         filename,
@@ -283,6 +283,7 @@ def validate_ref(schemas_bundle, bundle, filename, data, ptr, ref):
     return ValidationRefOK(kind, filename, ref['$ref'], data['$schema'])
 
 
+@lru_cache
 def fetch_schema(schema_url):
     if schema_url.startswith('http'):
         r = requests.get(schema_url)
