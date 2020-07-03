@@ -14,21 +14,17 @@ setup(
     packages=find_packages(exclude=('tests',)),
 
     install_requires=[
-        "anymarkup==0.7.0",
-        "Click==7.0",
-        "enum34==1.1.6",
-        "jsonschema==2.6.0",
-        "PyYAML==5.1.2",
-        "requests==2.20.0"
+        "anymarkup~=0.8",
+        "Click~=7.1",
+        "jsonschema~=3.2",
+        "PyYAML~=5.3",
+        "requests~=2.24"
     ],
 
     test_suite="tests",
 
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.6',
