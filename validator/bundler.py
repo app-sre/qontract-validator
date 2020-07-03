@@ -57,7 +57,7 @@ def bundle_resource_spec(spec):
 
     # hash
     m = hashlib.sha256()
-    m.update(content)
+    m.update(content.encode())
     sha256sum = m.hexdigest()
 
     return rel_abs_path, {"path": rel_abs_path,
