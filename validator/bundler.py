@@ -15,6 +15,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
 
+
 def bundle_datafiles(data_dir, thread_pool_size):
     specs = init_specs(data_dir)
     pool = ThreadPool(thread_pool_size)

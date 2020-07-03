@@ -283,7 +283,7 @@ def validate_ref(schemas_bundle, bundle, filename, data, ptr, ref):
     return ValidationRefOK(kind, filename, ref['$ref'], data['$schema'])
 
 
-@lru_cache
+@lru_cache()
 def fetch_schema(schema_url):
     if schema_url.startswith('http'):
         r = requests.get(schema_url)
