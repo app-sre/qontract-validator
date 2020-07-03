@@ -9,6 +9,7 @@ from functools import lru_cache
 import anymarkup
 import click
 import jsonschema
+from jsonschema import Draft6Validator as jsonschema_validator
 import requests
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
@@ -161,8 +162,8 @@ def validate_schema(schemas_bundle, filename, schema_data):
     )
 
     try:
-        jsonschema.Draft4Validator.check_schema(schema_data)
-        validator = jsonschema.Draft4Validator(meta_schema, resolver=resolver)
+        jsonschema_validator.check_schema(schema_data)
+        validator = jsonschema_validator(meta_schema, resolver=resolver)
         validator.validate(schema_data)
     except jsonschema.ValidationError as e:
         return ValidationError(kind, filename, "VALIDATION_ERROR", e,
@@ -200,7 +201,7 @@ def validate_file(schemas_bundle, filename, data):
             schema,
             handlers=get_handlers(schemas_bundle)
         )
-        validator = jsonschema.Draft4Validator(schema, resolver=resolver)
+        validator = jsonschema_validator(schema, resolver=resolver)
         validator.validate(data)
     except jsonschema.ValidationError as e:
         return ValidationError(kind, filename, "VALIDATION_ERROR", e,
@@ -274,7 +275,7 @@ def validate_ref(schemas_bundle, bundle, filename, data, ptr, ref):
                 )
         else:
             try:
-                validator = jsonschema.Draft4Validator(expected_schema)
+                validator = jsonschema_validator(expected_schema)
                 validator.validate(ref_data)
             except jsonschema.exceptions.ValidationError as e:
                 return ValidationError(kind, filename,
