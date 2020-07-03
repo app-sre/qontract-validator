@@ -15,6 +15,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
 
+
 def bundle_datafiles(data_dir, thread_pool_size):
     specs = init_specs(data_dir)
     pool = ThreadPool(thread_pool_size)
@@ -57,7 +58,7 @@ def bundle_resource_spec(spec):
 
     # hash
     m = hashlib.sha256()
-    m.update(content)
+    m.update(content.encode())
     sha256sum = m.hexdigest()
 
     return rel_abs_path, {"path": rel_abs_path,
