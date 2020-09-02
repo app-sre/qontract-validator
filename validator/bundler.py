@@ -54,7 +54,8 @@ def bundle_resource_spec(spec):
     rel_abs_path = path[len(work_dir):]
     logging.info("Resource: {}\n".format(rel_abs_path))
 
-    content = open(path, 'r').read()
+    with open(path, 'rb') as f:
+        content = f.read().decode(errors='replace')
 
     # hash
     m = hashlib.sha256()
