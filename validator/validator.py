@@ -39,6 +39,7 @@ class ValidatedFileKind(Enum):
     DATA_FILE = "FILE"
     REF = "REF"
     NONE = "NONE"
+    UNIQUE = "UNIQUE"
 
 
 class ValidationOK():
@@ -216,6 +217,51 @@ def validate_file(schemas_bundle, filename, data):
     return ValidationOK(kind, filename, schema_url)
 
 
+def validate_unique_fields(graphql_bundle, data_bundle):
+    graphql = {}
+    for item in graphql_bundle:
+        graphql[item['name']] = item['fields']
+
+    datafiles_map = {}
+    for field in graphql['Query']:
+        if 'datafileSchema' in field:
+            datafiles_map[field['type']] = field['datafileSchema']
+
+    unique_map = {}
+    for gql_type, gql_fields in graphql.items():
+        if gql_type == 'Query':
+            continue
+
+        datafile_schema = datafiles_map.get(gql_type)
+        if not datafile_schema:
+            # not top-level schema
+            continue
+
+        unique_map[datafile_schema] = []
+        for field in gql_fields:
+            if field.get('isUnique'):
+                unique_map[datafile_schema].append(field['name'])
+
+    unique_fields = {}
+    for filename, data in data_bundle.items():
+        for field in unique_map.get(data['$schema'], []):
+            key = (data['$schema'], field, data.get(field))
+            unique_fields.setdefault(key, [])
+            unique_fields[key].append(filename)
+
+    results = []
+    for key, filenames in unique_fields.items():
+        if len(filenames) > 1:
+            error = ValidationError(
+                ValidatedFileKind.UNIQUE,
+                filenames[0],
+                "DUPLICATE_UNIQUE_FIELD",
+                "The field '{}' is repeated: {}".format(key[1], filenames))
+            results.append(error.dump())
+
+    return results
+
+
 def validate_resource(schemas_bundle, filename, resource):
     content = resource['content']
     if '$schema' not in content:
@@ -339,6 +385,7 @@ def main(only_errors, bundle):
     data_bundle = bundle['data']
     schemas_bundle = bundle['schemas']
     resources_bundle = bundle['resources']
+    graphql_bundle = bundle['graphql']
 
     # Validate schemas
     results_schemas = [
@@ -352,11 +399,13 @@ def main(only_errors, bundle):
         for filename, data in data_bundle.items()
     ]
 
+    # validate unique fields
+    results_unique_fields = validate_unique_fields(graphql_bundle, data_bundle)
+
     # validate resources
     results_resources = [
         validate_resource(schemas_bundle, filename, resource).dump()
         for filename, resource in resources_bundle.items()
-
     ]
 
     # validate refs
@@ -368,8 +417,8 @@ def main(only_errors, bundle):
     ]
 
     # Calculate errors
-    results = \
-        results_schemas + results_files + results_resources + results_refs
+    results = results_schemas + results_files + results_unique_fields + \
+        results_resources + results_refs
     errors = list(filter(lambda x: x['result']['status'] == 'ERROR', results))
 
     # Output
