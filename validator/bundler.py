@@ -99,9 +99,10 @@ def fix_dir(directory):
 @click.argument('data-dir', type=click.Path(exists=True))
 @click.argument('resource-dir', type=click.Path(exists=True))
 @click.argument('git-commit')
+@click.argument('git-commit-timestamp')
 def main(resolve, thread_pool_size,
          schema_dir, graphql_schema_file, data_dir, resource_dir,
-         git_commit):
+         git_commit, git_commit_timestamp):
     schema_dir = fix_dir(schema_dir)
     data_dir = fix_dir(data_dir)
     resource_dir = fix_dir(resource_dir)
@@ -109,6 +110,7 @@ def main(resolve, thread_pool_size,
     bundle = {}
 
     bundle['git_commit'] = git_commit
+    bundle['git_commit_timestamp'] = git_commit_timestamp
     bundle['schemas'] = bundle_datafiles(schema_dir, thread_pool_size)
     bundle['graphql'] = bundle_graphql(graphql_schema_file)
     bundle['data'] = bundle_datafiles(data_dir, thread_pool_size)
