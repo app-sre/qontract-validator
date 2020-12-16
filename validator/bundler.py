@@ -9,6 +9,7 @@ import logging
 import anymarkup
 import click
 import json
+import yaml
 
 from multiprocessing.dummy import Pool as ThreadPool
 
@@ -57,6 +58,13 @@ def bundle_resource_spec(spec):
     with open(path, 'rb') as f:
         content = f.read().decode(errors='replace')
 
+    schema = None
+    try:
+        data = yaml.load(content, Loader=yaml.FullLoader)
+        schema = data.get('$schema')
+    except (yaml.parser.ParserError, yaml.scanner.ScannerError):
+        pass
+
     # hash
     m = hashlib.sha256()
     m.update(content.encode())
@@ -64,6 +72,7 @@ def bundle_resource_spec(spec):
 
     return rel_abs_path, {"path": rel_abs_path,
                           "content": content,
+                          "schema": schema,
                           "sha256sum": sha256sum}
 
 
