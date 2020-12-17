@@ -72,7 +72,7 @@ def bundle_resource_spec(spec):
 
     return rel_abs_path, {"path": rel_abs_path,
                           "content": content,
-                          "schema": schema,
+                          "$schema": schema,
                           "sha256sum": sha256sum}
 
 
