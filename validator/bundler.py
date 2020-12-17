@@ -62,7 +62,9 @@ def bundle_resource_spec(spec):
     try:
         data = yaml.load(content, Loader=yaml.FullLoader)
         schema = data.get('$schema')
-    except (yaml.parser.ParserError, yaml.scanner.ScannerError):
+    except (yaml.parser.ParserError,
+            yaml.scanner.ScannerError,
+            yaml.constructor.ConstructorError):
         pass
 
     # hash
