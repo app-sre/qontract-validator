@@ -267,7 +267,12 @@ def validate_resource(schemas_bundle, filename, resource):
     if '$schema' not in content:
         return ValidationOK(ValidatedFileKind.NONE, filename, '')
 
-    data = yaml.load(content, Loader=yaml.FullLoader)
+    try:
+        data = yaml.load(content, Loader=yaml.FullLoader)
+    except yaml.error.YAMLError:
+        logging.warning(f"We can't validate resource with schema {filename}")
+        return ValidationOK(ValidatedFileKind.NONE, filename, '')
+
     return validate_file(schemas_bundle, filename, data)
 
 
