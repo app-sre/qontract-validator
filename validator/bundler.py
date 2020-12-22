@@ -9,12 +9,16 @@ import logging
 import anymarkup
 import click
 import json
-import yaml
 
 from multiprocessing.dummy import Pool as ThreadPool
 
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
+
+# regex to get the schema from the resource files.
+# we use multiline as we have a raw string with newlines caracters
+# we don't use pyyaml to parse it as they are jinja templates in most cases
+SCHEMA_RE = re.compile(r'^\$schema: (?P<schema>.+\.ya?ml)$', re.MULTILINE)
 
 
 def bundle_datafiles(data_dir, thread_pool_size):
@@ -59,12 +63,9 @@ def bundle_resource_spec(spec):
         content = f.read().decode(errors='replace')
 
     schema = None
-    try:
-        data = yaml.load(content, Loader=yaml.FullLoader)
-        schema = data.get('$schema')
-    except (yaml.error.YAMLError,  # all pyyaml errors inherit from YAMLError
-            AttributeError):  # we can have plain strings or list resources
-        pass
+    s = SCHEMA_RE.search(content)
+    if s:
+        schema = s.group('schema')
 
     # hash
     m = hashlib.sha256()
