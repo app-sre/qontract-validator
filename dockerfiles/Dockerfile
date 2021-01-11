@@ -11,6 +11,7 @@ RUN yum install -y epel-release && \
     yum clean all
 
 COPY validator /validator/validator
+COPY utils /validator/utils
 COPY setup.py /validator
 
 WORKDIR /validator
