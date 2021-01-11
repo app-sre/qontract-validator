@@ -6,6 +6,10 @@ import re
 import sys
 import logging
 
+# Monkey-patch PyYAML forcing it to use LibYAML (i.e.: CLoader, CDumper)
+# Has to load before anymarkup
+import utils.pylibyaml 
+
 import anymarkup
 import click
 import json

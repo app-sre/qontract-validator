@@ -6,6 +6,10 @@ import sys
 from enum import Enum
 from functools import lru_cache
 
+# Monkey-patch PyYAML forcing it to use LibYAML (i.e.: CLoader, CDumper)
+# Has to load before anymarkup
+import utils.pylibyaml
+
 import anymarkup
 import click
 import jsonschema

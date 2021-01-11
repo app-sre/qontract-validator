@@ -1,5 +1,9 @@
 import os
 
+# Monkey-patch PyYAML forcing it to use LibYAML (i.e.: CLoader, CDumper)
+# Has to load before anymarkup
+import utils.pylibyaml 
+
 import anymarkup
 
 
