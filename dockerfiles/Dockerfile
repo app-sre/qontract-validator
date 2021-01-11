@@ -5,6 +5,7 @@ ENV LANG=en_US.utf8
 
 RUN yum install -y epel-release && \
     yum install -y python36 python36-pip && \
+    yum install -y python36-PyYAML && \
     yum clean all && \
     pip3 install --upgrade pip && \
     yum clean all
