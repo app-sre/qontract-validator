@@ -11,7 +11,7 @@ import json
 
 from multiprocessing.dummy import Pool as ThreadPool
 
-from validator.utils import parse_anymarkup
+from validator.utils import parse_anymarkup_file
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
 
@@ -41,7 +41,7 @@ def bundle_datafile_spec(spec):
 
     logging.info("Processing: {}\n".format(rel_abs_path))
 
-    return rel_abs_path, parse_anymarkup(path)
+    return rel_abs_path, parse_anymarkup_file(path)
 
 
 def bundle_resources(resource_dir, thread_pool_size):
@@ -92,7 +92,7 @@ def init_specs(work_dir):
 
 
 def bundle_graphql(graphql_schema_file):
-    return parse_anymarkup(graphql_schema_file)
+    return parse_anymarkup_file(graphql_schema_file)
 
 
 def fix_dir(directory):

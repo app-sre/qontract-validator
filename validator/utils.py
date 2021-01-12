@@ -8,7 +8,10 @@ except ImportError:
     from yaml import SafeLoader as SafeLoader
 
 
-def parse_anymarkup(filename):
+def parse_anymarkup_file(filename):
+    if not os.path.isfile(filename):
+        raise FileNotFoundError(f'could not find file {filename}')
+
     file_ext = os.path.splitext(filename)[1][len(os.path.extsep):]
 
     res = {}
