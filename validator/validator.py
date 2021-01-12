@@ -11,7 +11,6 @@ import jsonschema
 from jsonschema import Draft6Validator as jsonschema_validator
 import requests
 
-from validator.utils import parse_anymarkup
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
 
@@ -342,7 +341,7 @@ def fetch_schema(schema_url):
         r = requests.get(schema_url)
         r.raise_for_status()
         schema = r.text
-        return parse_anymarkup(schema)
+        return json.load(schema, encoding='utf-8')
     else:
         raise MissingSchemaFile(schema_url)
 
