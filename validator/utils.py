@@ -20,7 +20,7 @@ def parse_anymarkup(filename):
         res = _load_json(fh)
     else:
         raise NotImplementedError(
-            f'cannot load markup file with extension {file_ext}: {filename}')
+            f'markup parsing for extension {file_ext} is not implemented')
 
     return res
 
