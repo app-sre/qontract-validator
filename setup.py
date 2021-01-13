@@ -14,7 +14,6 @@ setup(
     packages=find_packages(exclude=('tests',)),
 
     install_requires=[
-        "anymarkup~=0.8",
         "Click~=7.1",
         "jsonschema~=3.2",
         "PyYAML~=5.3",

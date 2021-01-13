@@ -1,6 +1,6 @@
 import os
 
-import anymarkup
+from validator.utils import parse_anymarkup_file
 
 
 class Fixtures(object):
@@ -20,4 +20,4 @@ class Fixtures(object):
             return f.read().strip()
 
     def get_anymarkup(self, fixture):
-        return anymarkup.parse(self.get(fixture), force_types=None)
+        return parse_anymarkup_file(self.path(fixture))

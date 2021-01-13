@@ -6,11 +6,11 @@ import sys
 from enum import Enum
 from functools import lru_cache
 
-import anymarkup
 import click
 import jsonschema
 from jsonschema import Draft6Validator as jsonschema_validator
 import requests
+
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
 
@@ -341,7 +341,7 @@ def fetch_schema(schema_url):
         r = requests.get(schema_url)
         r.raise_for_status()
         schema = r.text
-        return anymarkup.parse(schema, force_types=None)
+        return json.loads(schema, encoding='utf-8')
     else:
         raise MissingSchemaFile(schema_url)
 
