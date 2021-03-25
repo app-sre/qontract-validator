@@ -1,0 +1,19 @@
+magic: &magic
+  magic_object: is_here
+
+schemas_bundle:
+  external_schema:
+      type: object
+      properties:
+        mirror:
+          <<: *magic
+
+schema:
+  type: object
+  properties:
+    internal:
+      type: array
+      items:
+        $ref: external_schema
+
+ptr: /internal/1/mirror

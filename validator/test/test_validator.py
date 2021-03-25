@@ -9,7 +9,8 @@ class TestGetSchemaInfoFromPointer(object):
         fixture = self.fxt.get_anymarkup(self.fxt.path(fxt_path))
 
         obj = validator.get_schema_info_from_pointer(
-            fixture['schema'], fixture['ptr'])
+            fixture['schema'], fixture['ptr'],
+            fixture.get('schemas_bundle', {}))
 
         assert fixture['magic'] == obj
 
@@ -24,3 +25,6 @@ class TestGetSchemaInfoFromPointer(object):
 
     def test_complex(self):
         self.do_fxt_test('complex.yml')
+
+    def test_external_ref(self):
+        self.do_fxt_test('external_ref.yml')
