@@ -302,7 +302,7 @@ def validate_ref(schemas_bundle, bundle, filename, data, ptr, ref):
         )
 
     try:
-        schema_info = get_schema_info_from_pointer(schema, ptr)
+        schema_info = get_schema_info_from_pointer(schema, ptr, schemas_bundle)
     except KeyError as e:
         return ValidationError(
             kind,
@@ -369,12 +369,16 @@ def find_refs(obj, ptr=None, refs=None):
     return refs
 
 
-def get_schema_info_from_pointer(schema, ptr):
+def get_schema_info_from_pointer(schema, ptr, schemas_bundle):
     info = schema
 
     for chunk in ptr.split("/")[1:]:
         if chunk.isdigit():
             info = info['items']
+            if list(info.keys()) == ['$ref']:
+                # this points to an external schema
+                # we need to load it
+                info = schemas_bundle[info['$ref']]
         else:
             info = info['properties'][chunk]
 
