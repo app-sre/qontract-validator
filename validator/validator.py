@@ -341,7 +341,7 @@ def fetch_schema(schema_url):
         r = requests.get(schema_url)
         r.raise_for_status()
         schema = r.text
-        return json.loads(schema, encoding='utf-8')
+        return json.loads(schema)
     else:
         raise MissingSchemaFile(schema_url)
 
