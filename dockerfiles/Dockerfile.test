@@ -1,16 +1,19 @@
-FROM quay.io/centos/centos:7
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.6
 
 ENV LC_ALL=en_US.utf8
 ENV LANG=en_US.utf8
 
-RUN yum install -y epel-release && \
-    yum install -y python36 && \
-    yum install -y python36-PyYAML && \
-    yum clean all && \
-    pip3 install --upgrade pip && \
-    pip3 install tox
+ENV TOX_PARALLEL_NO_SPINNER=1
 
-COPY . /package
+RUN microdnf install \
+        python3.9 && \
+    microdnf clean all
+
+RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools
+RUN python3 -m pip install tox
+
 WORKDIR /package
+COPY . /package
+
 
 CMD [ "tox" ]
