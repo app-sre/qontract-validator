@@ -12,7 +12,7 @@ class TestGetSchemaInfoFromPointer(object):
             fixture['schema'], fixture['ptr'],
             fixture.get('schemas_bundle', {}))
 
-        assert fixture['magic'] == obj
+        assert fixture['result'] == obj
 
     def test_object(self):
         self.do_fxt_test('object.yml')
@@ -28,3 +28,9 @@ class TestGetSchemaInfoFromPointer(object):
 
     def test_external_ref(self):
         self.do_fxt_test('external_ref.yml')
+
+    def test_one_of(self):
+        self.do_fxt_test('one_of.yml')
+
+    def test_one_of_multiple(self):
+        self.do_fxt_test('one_of_multiple.yml')

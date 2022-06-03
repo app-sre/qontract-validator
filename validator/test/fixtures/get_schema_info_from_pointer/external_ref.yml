@@ -1,6 +1,9 @@
 magic: &magic
   magic_object: is_here
 
+result:
+- *magic
+
 schemas_bundle:
   external_schema:
       type: object

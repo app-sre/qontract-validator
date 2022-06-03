@@ -1,6 +1,9 @@
 magic: &magic
   magic_object: is_here
 
+result:
+- *magic
+
 schema:
   type: object
   properties:
