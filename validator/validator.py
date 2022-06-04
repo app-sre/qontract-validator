@@ -14,8 +14,6 @@ import requests
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
 
-basestring = str
-
 
 class IncorrectSchema(Exception):
     def __init__(self, got, expecting):
@@ -317,7 +315,7 @@ def validate_ref(schemas_bundle, bundle, filename, data, ptr, ref):
         expected_schema = schema_info.get('$schemaRef')
 
         if expected_schema is not None:
-            if isinstance(expected_schema, basestring):
+            if isinstance(expected_schema, str):
                 if expected_schema != ref_data['$schema']:
                     errors.append(
                         ValidationError(
@@ -392,7 +390,7 @@ def find_refs(obj, ptr=None, refs=None):
 def flatten_list(collection):
     result = []
     for el in collection:
-        if hasattr(el, "__iter__") and not isinstance(el, basestring):
+        if hasattr(el, "__iter__") and not isinstance(el, str):
             result.extend(flatten_list(el))
         else:
             result.append(el)
