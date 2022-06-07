@@ -14,11 +14,6 @@ import requests
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
 
-try:
-    basestring
-except NameError:
-    basestring = str
-
 
 class IncorrectSchema(Exception):
     def __init__(self, got, expecting):
@@ -302,37 +297,60 @@ def validate_ref(schemas_bundle, bundle, filename, data, ptr, ref):
         )
 
     try:
-        schema_info = get_schema_info_from_pointer(schema, ptr, schemas_bundle)
+        schema_infos = get_schema_info_from_pointer(
+            schema, ptr, schemas_bundle
+        )
     except KeyError as e:
         return ValidationError(
             kind,
             filename,
             "SCHEMA_DEFINITION_NOT_FOUND",
             e,
-            ref=ref['$ref']
+            ref=ref['$ref'],
+            ptr=ptr
         )
 
-    expected_schema = schema_info.get('$schemaRef')
+    errors = []
+    for schema_info in schema_infos:
+        expected_schema = schema_info.get('$schemaRef')
 
-    if expected_schema is not None:
-        if isinstance(expected_schema, basestring):
-            if expected_schema != ref_data['$schema']:
-                return ValidationError(
-                    kind,
-                    filename,
-                    "INCORRECT_SCHEMA",
-                    IncorrectSchema(ref_data['$schema'], expected_schema),
-                    ref=ref['$ref']
-                )
-        else:
-            try:
-                validator = jsonschema_validator(expected_schema)
-                validator.validate(ref_data)
-            except jsonschema.exceptions.ValidationError as e:
-                return ValidationError(kind, filename,
-                                       "SCHEMA_REF_VALIDATION_ERROR", e)
+        if expected_schema is not None:
+            if isinstance(expected_schema, str):
+                if expected_schema != ref_data['$schema']:
+                    errors.append(
+                        ValidationError(
+                            kind,
+                            filename,
+                            "INCORRECT_SCHEMA",
+                            IncorrectSchema(
+                                ref_data['$schema'],
+                                expected_schema
+                            ),
+                            ref=ref['$ref']
+                        )
+                    )
+                else:
+                    return ValidationRefOK(
+                        kind, filename, ref['$ref'], data['$schema']
+                    )
+            else:
+                try:
+                    validator = jsonschema_validator(expected_schema)
+                    validator.validate(ref_data)
+                    return ValidationRefOK(
+                        kind, filename, ref['$ref'], data['$schema']
+                    )
+                except jsonschema.exceptions.ValidationError as e:
+                    errors.append(
+                        ValidationError(
+                            kind,
+                            filename,
+                            "SCHEMA_REF_VALIDATION_ERROR",
+                            e
+                        )
+                    )
 
-    return ValidationRefOK(kind, filename, ref['$ref'], data['$schema'])
+    return errors
 
 
 @lru_cache()
@@ -369,20 +387,55 @@ def find_refs(obj, ptr=None, refs=None):
     return refs
 
 
-def get_schema_info_from_pointer(schema, ptr, schemas_bundle):
+def flatten_list(collection):
+    result = []
+    for el in collection:
+        if hasattr(el, "__iter__") and not isinstance(el, str):
+            result.extend(flatten_list(el))
+        else:
+            result.append(el)
+    return result
+
+
+def get_schema_info_from_pointer(schema, ptr, schemas_bundle) -> list[dict]:
     info = schema
 
-    for chunk in ptr.split("/")[1:]:
+    ptr_chunks = ptr.split("/")[1:]
+    for idx, chunk in enumerate(ptr_chunks):
         if chunk.isdigit():
             info = info['items']
             if list(info.keys()) == ['$ref']:
                 # this points to an external schema
                 # we need to load it
                 info = schemas_bundle[info['$ref']]
+            elif list(info.keys()) == ['oneOf']:
+                schemas = []
+                # this is a list of type options in an array
+                # we look at all of them and try to find at least one where the
+                # ptr resolves successfully
+                for ref in info["oneOf"]:
+                    try:
+                        schemas.extend(
+                            get_schema_info_from_pointer(
+                                schemas_bundle[ref["$ref"]],
+                                f"/{'/'.join(ptr_chunks[idx+1:])}",
+                                schemas_bundle
+                            )
+                        )
+                    except KeyError:
+                        pass
+                        # this subtype is not the one we are looking for
+                if not schemas:
+                    raise KeyError(
+                        f"unable to resolve schema for {ptr} "
+                        f"in oneOf options {info['oneOf']}"
+                    )
+                else:
+                    return schemas
         else:
             info = info['properties'][chunk]
 
-    return info
+    return [info]
 
 
 @click.command()
@@ -419,10 +472,17 @@ def main(only_errors, bundle):
 
     # validate refs
     results_refs = [
-        validate_ref(schemas_bundle, data_bundle,
-                     filename, data, ptr, ref).dump()
-        for filename, data in data_bundle.items()
-        for ptr, ref in find_refs(data)
+        r.dump() for r in
+        # validate_ref can return multiple errors, so we flatten the results
+        flatten_list(
+            [
+                validate_ref(
+                    schemas_bundle, data_bundle, filename, data, ptr, ref
+                )
+                for filename, data in data_bundle.items()
+                for ptr, ref in find_refs(data)
+            ]
+        )
     ]
 
     # Calculate errors

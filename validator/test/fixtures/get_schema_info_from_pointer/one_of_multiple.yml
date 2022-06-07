@@ -1,0 +1,33 @@
+magic_1: &magic_1
+  magic_object: is_here
+
+magic_2: &magic_2
+  another_magic_object: is_here
+
+result:
+- *magic_1
+- *magic_2
+
+schemas_bundle:
+  external_schema_1:
+    type: object
+    properties:
+      mirror:
+        <<: *magic_1
+  external_schema_2:
+    type: object
+    properties:
+      mirror:
+        <<: *magic_2
+
+schema:
+  type: object
+  properties:
+    internal:
+      type: array
+      items:
+        oneOf:
+          - $ref: external_schema_1
+          - $ref: external_schema_2
+
+ptr: /internal/1/mirror
