@@ -11,7 +11,7 @@ import jsonschema
 from jsonschema import Draft6Validator as jsonschema_validator
 import requests
 
-from validator.bundle import load_bundle
+from validator.bundle import load_bundle, Bundle
 
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
@@ -214,10 +214,12 @@ def validate_file(schemas_bundle, filename, data):
     return ValidationOK(kind, filename, schema_url)
 
 
-def validate_unique_fields(graphql_bundle, data_bundle):
+def validate_unique_fields(bundle: Bundle):
+    data_bundle = bundle.data
     graphql = {}
-    for item in graphql_bundle:
-        graphql[item['name']] = item['fields']
+
+    for item in bundle.list_graphql_types():
+        graphql[item.spec['name']] = item.spec['fields']
 
     datafiles_map = {}
     for field in graphql['Query']:
@@ -459,7 +461,7 @@ def main(only_errors, bundle):
     ]
 
     # validate unique fields
-    results_unique_fields = validate_unique_fields(bundle.graphql, bundle.data)
+    results_unique_fields = validate_unique_fields(bundle)
 
     # validate resources
     results_resources = [
@@ -482,9 +484,15 @@ def main(only_errors, bundle):
         )
     ]
 
+    results_graphql_schemas = [
+        validate_file(bundle.schemas, "graphql-schemas/schema.yml",
+                      bundle.graphql).dump()] \
+        if type(bundle.graphql) is dict and bundle.graphql['$schema'] else []
+
+
     # Calculate errors
     results = results_schemas + results_files + results_unique_fields + \
-        results_resources + results_refs
+        results_resources + results_refs + results_graphql_schemas
     errors = list(filter(lambda x: x['result']['status'] == 'ERROR', results))
 
     # Output
