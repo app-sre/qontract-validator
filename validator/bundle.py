@@ -11,9 +11,7 @@ class GraphqlType:
     bundle: "Bundle"
 
     def __post_init__(self):
-        self.fields_by_name = {
-            f.get("name"): f for f in self.spec.get("fields")
-        }
+        self.fields_by_name = {f.get("name"): f for f in self.spec.get("fields")}
 
     def get_referenced_field_type(self, name: str) -> Optional["GraphqlType"]:
         field = self.fields_by_name.get(name)
@@ -26,7 +24,9 @@ class GraphqlType:
         return self.spec.get("interfaceResolve", {}).get("field")
 
     def get_sub_type(self, discriminator: str) -> Optional["GraphqlType"]:
-        sub_type_name = self.spec.get("interfaceResolve", {}).get("fieldMap", {}).get(discriminator)
+        sub_type_name = (
+            self.spec.get("interfaceResolve", {}).get("fieldMap", {}).get(discriminator)
+        )
         if sub_type_name:
             return self.bundle.get_graphql_type_by_name(sub_type_name)
         else:
@@ -47,7 +47,9 @@ class Bundle:
     _graphql_type_by_name: dict[str, GraphqlType] = field(init=False)
 
     def __post_init__(self):
-        self._graphql_type_by_name = {t["name"]: GraphqlType(t["name"], t, self) for t in self.graphql}
+        self._graphql_type_by_name = {
+            t["name"]: GraphqlType(t["name"], t, self) for t in self.graphql
+        }
         self._top_level_schemas = {
             f.get("datafileSchema"): self._graphql_type_by_name[f["type"]]
             for f in self._graphql_type_by_name["Query"].spec["fields"]
@@ -61,20 +63,20 @@ class Bundle:
             "schemas": self.schemas,
             "graphql": self.graphql,
             "data": self.data,
-            "resources": self.resources
+            "resources": self.resources,
         }
 
-    def get_graphql_type_for_schema(self, schema) -> Optional[GraphqlType]:
+    def get_graphql_type_for_schema(self, schema: str) -> Optional[GraphqlType]:
         return self._top_level_schemas.get(schema)
 
     def get_graphql_type_by_name(self, type: str) -> Optional[GraphqlType]:
         return self._graphql_type_by_name.get(type)
 
-    def is_top_level_schema(self, datafile_schema) -> bool:
+    def is_top_level_schema(self, datafile_schema: str) -> bool:
         return datafile_schema in self._top_level_schemas
 
 
-def load_bundle(bundle_source) -> Bundle:
+def load_bundle(bundle_source: str) -> Bundle:
     bundle_data = json.load(bundle_source)
     return Bundle(
         data=bundle_data["data"],

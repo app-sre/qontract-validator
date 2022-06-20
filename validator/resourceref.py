@@ -34,7 +34,7 @@ def resolve_resource_references(bundle: Bundle):
     # build up a list of resource references on a type level
     context = Context(bundle)
 
-    # find all paths to resource fields in the schemas
+    # find all jsonpath to resource reference fields in the schemas
     datafile_schema_resource_ref_jsonpaths: dict[str, list] = {}
     for datafile_schema, schema_object in bundle.schemas.items():
         if bundle.is_top_level_schema(datafile_schema):
@@ -46,7 +46,7 @@ def resolve_resource_references(bundle: Bundle):
                 parse(p) for p in paths
             ]
 
-    # use the paths for find actual resources and backref them to their data files
+    # use the jsonpaths to find actual resources and backref them to their data files
     for df_path, df in bundle.data.items():
         df_schema = df["$schema"]
         for jsonpath in datafile_schema_resource_ref_jsonpaths.get(df_schema, []):
@@ -136,7 +136,9 @@ def _find_resource_field_paths(
                         )
                     if not sub_schema_object:
                         continue
-                    for sub_schema_discriminator in sub_schema_object["properties"][interfaceResolverField]["enum"]:
+                    for sub_schema_discriminator in sub_schema_object["properties"][
+                        interfaceResolverField
+                    ]["enum"]:
                         property_graphql_sub_type = property_graphql_type.get_sub_type(
                             sub_schema_discriminator
                         )
@@ -148,7 +150,9 @@ def _find_resource_field_paths(
                         )
                         for p in sub_schema_paths:
                             paths.append(
-                                f"{property_name}[?(@.{interfaceResolverField}=='{sub_schema_discriminator}')].{p}"
+                                f"{property_name}[?(@.{interfaceResolverField}"
+                                f"=="
+                                f"'{sub_schema_discriminator}')].{p}"
                             )
             else:
                 if not ctx.bundle.is_top_level_schema(property_schema_name):
