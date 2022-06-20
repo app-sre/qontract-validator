@@ -1,5 +1,8 @@
 FROM registry.access.redhat.com/ubi8/ubi-minimal:8.6
 
+ENV LC_ALL=en_US.utf8
+ENV LANG=en_US.utf8
+
 RUN microdnf install \
         python3.9 && \
     microdnf clean all

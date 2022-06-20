@@ -136,7 +136,7 @@ def _find_resource_field_paths(
                         )
                     if not sub_schema_object:
                         continue
-                    for sub_schema_discriminator in  sub_schema_object["properties"][interfaceResolverField]["enum"]:
+                    for sub_schema_discriminator in sub_schema_object["properties"][interfaceResolverField]["enum"]:
                         property_graphql_sub_type = property_graphql_type.get_sub_type(
                             sub_schema_discriminator
                         )
