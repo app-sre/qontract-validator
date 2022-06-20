@@ -136,22 +136,20 @@ def _find_resource_field_paths(
                         )
                     if not sub_schema_object:
                         continue
-                    sub_schema_discriminator = sub_schema_object["properties"][
-                        interfaceResolverField
-                    ]["enum"][0]
-                    property_graphql_sub_type = property_graphql_type.get_sub_type(
-                        sub_schema_discriminator
-                    )
-                    sub_schema_paths = _find_resource_field_paths(
-                        property_schema_name,
-                        sub_schema_object,
-                        property_graphql_sub_type,
-                        ctx,
-                    )
-                    for p in sub_schema_paths:
-                        paths.append(
-                            f"{property_name}[?(@.{interfaceResolverField}=='{sub_schema_discriminator}')].{p}"
+                    for sub_schema_discriminator in  sub_schema_object["properties"][interfaceResolverField]["enum"]:
+                        property_graphql_sub_type = property_graphql_type.get_sub_type(
+                            sub_schema_discriminator
                         )
+                        sub_schema_paths = _find_resource_field_paths(
+                            property_schema_name,
+                            sub_schema_object,
+                            property_graphql_sub_type,
+                            ctx,
+                        )
+                        for p in sub_schema_paths:
+                            paths.append(
+                                f"{property_name}[?(@.{interfaceResolverField}=='{sub_schema_discriminator}')].{p}"
+                            )
             else:
                 if not ctx.bundle.is_top_level_schema(property_schema_name):
                     with ctx.step_into(datafile_schema):
