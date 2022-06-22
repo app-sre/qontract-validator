@@ -10,8 +10,10 @@ import click
 import json
 
 from multiprocessing.dummy import Pool as ThreadPool
+from validator.bundle import Bundle
 
 from validator.utils import parse_anymarkup_file
+from validator.resourceref import resolve_resource_references
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
 
@@ -75,7 +77,8 @@ def bundle_resource_spec(spec):
     return rel_abs_path, {"path": rel_abs_path,
                           "content": content,
                           "$schema": schema,
-                          "sha256sum": sha256sum}
+                          "sha256sum": sha256sum,
+                          "backrefs": []}
 
 
 def init_specs(work_dir):
@@ -118,13 +121,15 @@ def main(resolve, thread_pool_size,
     data_dir = fix_dir(data_dir)
     resource_dir = fix_dir(resource_dir)
 
-    bundle = {}
+    bundle = Bundle(
+        git_commit=git_commit,
+        git_commit_timestamp=git_commit_timestamp,
+        schemas=bundle_datafiles(schema_dir, thread_pool_size),
+        graphql=bundle_graphql(graphql_schema_file),
+        data=bundle_datafiles(data_dir, thread_pool_size),
+        resources=bundle_resources(resource_dir, thread_pool_size)
+    )
 
-    bundle['git_commit'] = git_commit
-    bundle['git_commit_timestamp'] = git_commit_timestamp
-    bundle['schemas'] = bundle_datafiles(schema_dir, thread_pool_size)
-    bundle['graphql'] = bundle_graphql(graphql_schema_file)
-    bundle['data'] = bundle_datafiles(data_dir, thread_pool_size)
-    bundle['resources'] = bundle_resources(resource_dir, thread_pool_size)
+    resolve_resource_references(bundle)
 
-    sys.stdout.write(json.dumps(bundle, indent=4) + "\n")
+    sys.stdout.write(json.dumps(bundle.to_dict(), indent=4) + "\n")

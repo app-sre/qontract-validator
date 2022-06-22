@@ -11,6 +11,8 @@ import jsonschema
 from jsonschema import Draft6Validator as jsonschema_validator
 import requests
 
+from validator.bundle import load_bundle
+
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
 
@@ -442,32 +444,27 @@ def get_schema_info_from_pointer(schema, ptr, schemas_bundle) -> list[dict]:
 @click.option('--only-errors', is_flag=True, help='Print only errors')
 @click.argument('bundle', type=click.File('rb'))
 def main(only_errors, bundle):
-    bundle = json.load(bundle)
-
-    data_bundle = bundle['data']
-    schemas_bundle = bundle['schemas']
-    resources_bundle = bundle['resources']
-    graphql_bundle = bundle['graphql']
+    bundle = load_bundle(bundle)
 
     # Validate schemas
     results_schemas = [
-        validate_schema(schemas_bundle, filename, schema_data).dump()
-        for filename, schema_data in schemas_bundle.items()
+        validate_schema(bundle.schemas, filename, schema_data).dump()
+        for filename, schema_data in bundle.schemas.items()
     ]
 
     # validate datafiles
     results_files = [
-        validate_file(schemas_bundle, filename, data).dump()
-        for filename, data in data_bundle.items()
+        validate_file(bundle.schemas, filename, data).dump()
+        for filename, data in bundle.data.items()
     ]
 
     # validate unique fields
-    results_unique_fields = validate_unique_fields(graphql_bundle, data_bundle)
+    results_unique_fields = validate_unique_fields(bundle.graphql, bundle.data)
 
     # validate resources
     results_resources = [
-        validate_resource(schemas_bundle, filename, resource).dump()
-        for filename, resource in resources_bundle.items()
+        validate_resource(bundle.schemas, filename, resource).dump()
+        for filename, resource in bundle.resources.items()
     ]
 
     # validate refs
@@ -477,9 +474,9 @@ def main(only_errors, bundle):
         flatten_list(
             [
                 validate_ref(
-                    schemas_bundle, data_bundle, filename, data, ptr, ref
+                    bundle.schemas, bundle.data, filename, data, ptr, ref
                 )
-                for filename, data in data_bundle.items()
+                for filename, data in bundle.data.items()
                 for ptr, ref in find_refs(data)
             ]
         )

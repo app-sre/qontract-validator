@@ -17,7 +17,8 @@ setup(
         "Click~=7.1",
         "jsonschema~=3.2",
         "PyYAML~=5.3",
-        "requests~=2.24"
+        "requests~=2.24",
+        "jsonpath-ng~=1.5",
     ],
 
     test_suite="tests",
