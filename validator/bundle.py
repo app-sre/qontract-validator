@@ -36,7 +36,7 @@ class GraphqlType:
 @dataclass
 class Bundle:
 
-    graphql: Union[list[dict[str, Any]],dict[str, Any]]
+    graphql: Union[list[dict[str, Any]], dict[str, Any]]
     data: dict[str, dict[str, Any]]
     schemas: dict[str, dict[str, Any]]
     resources: dict[str, dict[str, Any]]
@@ -49,7 +49,8 @@ class Bundle:
     def __post_init__(self):
         if type(self.graphql) is dict and self.graphql['confs']:
             self._graphql_type_by_name = {
-                t["name"]: GraphqlType(t["name"], t, self) for t in self.graphql['confs']
+                t["name"]: GraphqlType(t["name"], t, self)
+                for t in self.graphql['confs']
             }
         elif type(self.graphql) is list:
             self._graphql_type_by_name = {

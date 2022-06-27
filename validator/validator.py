@@ -489,7 +489,6 @@ def main(only_errors, bundle):
                       bundle.graphql).dump()] \
         if type(bundle.graphql) is dict and bundle.graphql['$schema'] else []
 
-
     # Calculate errors
     results = results_schemas + results_files + results_unique_fields + \
         results_resources + results_refs + results_graphql_schemas
