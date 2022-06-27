@@ -5,10 +5,10 @@ from validator.test.fixtures import Fixtures
 import pytest
 
 
-@pytest.fixture
-def bundle() -> Bundle:
+@pytest.fixture(params=["bundle.yml", "bundle_with_graphql_schema_header.yml"])
+def bundle(request) -> Bundle:
     fxt = Fixtures("backref")
-    fixture = fxt.get_anymarkup(fxt.path("bundle.yml"))
+    fixture = fxt.get_anymarkup(fxt.path(request.param))
     return Bundle(
         git_commit="c",
         git_commit_timestamp="t",
