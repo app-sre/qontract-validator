@@ -3,6 +3,10 @@ import json
 from typing import Any, Optional, Union
 
 
+class InvalidBundleException(Exception):
+    pass
+
+
 @dataclass
 class GraphqlType:
 
@@ -47,7 +51,8 @@ class Bundle:
     _graphql_type_by_name: dict[str, GraphqlType] = field(init=False)
 
     def __post_init__(self):
-        if type(self.graphql) is dict and self.graphql['confs']:
+        if type(self.graphql) is dict \
+                and (self.graphql['confs'] and self.graphql['$schema']):
             self._graphql_type_by_name = {
                 t["name"]: GraphqlType(t["name"], t, self)
                 for t in self.graphql['confs']
@@ -57,7 +62,9 @@ class Bundle:
                 t["name"]: GraphqlType(t["name"], t, self) for t in self.graphql
             }
         else:
-            raise Exception('Unknown bundle format')
+            raise InvalidBundleException('graphql field within bundle must be either '
+                                         '`list` or `dict` with keys `$schema` '
+                                         'and `confs`.')
         self._top_level_schemas = {
             f.get("datafileSchema"): self._graphql_type_by_name[f["type"]]
             for f in self._graphql_type_by_name["Query"].spec["fields"]
