@@ -1,6 +1,10 @@
 from dataclasses import dataclass, field
 import json
-from typing import Any, Optional
+from typing import Any, Optional, Union
+
+
+class InvalidBundleException(Exception):
+    pass
 
 
 @dataclass
@@ -36,7 +40,7 @@ class GraphqlType:
 @dataclass
 class Bundle:
 
-    graphql: list[dict[str, Any]]
+    graphql: Union[list[dict[str, Any]], dict[str, Any]]
     data: dict[str, dict[str, Any]]
     schemas: dict[str, dict[str, Any]]
     resources: dict[str, dict[str, Any]]
@@ -47,9 +51,20 @@ class Bundle:
     _graphql_type_by_name: dict[str, GraphqlType] = field(init=False)
 
     def __post_init__(self):
-        self._graphql_type_by_name = {
-            t["name"]: GraphqlType(t["name"], t, self) for t in self.graphql
-        }
+        if type(self.graphql) is dict \
+                and (self.graphql['confs'] and self.graphql['$schema']):
+            self._graphql_type_by_name = {
+                t["name"]: GraphqlType(t["name"], t, self)
+                for t in self.graphql['confs']
+            }
+        elif type(self.graphql) is list:
+            self._graphql_type_by_name = {
+                t["name"]: GraphqlType(t["name"], t, self) for t in self.graphql
+            }
+        else:
+            raise InvalidBundleException('graphql field within bundle must be either '
+                                         '`list` or `dict` with keys `$schema` '
+                                         'and `confs`.')
         self._top_level_schemas = {
             f.get("datafileSchema"): self._graphql_type_by_name[f["type"]]
             for f in self._graphql_type_by_name["Query"].spec["fields"]
@@ -68,6 +83,9 @@ class Bundle:
 
     def get_graphql_type_for_schema(self, schema: str) -> Optional[GraphqlType]:
         return self._top_level_schemas.get(schema)
+
+    def list_graphql_types(self) -> list[GraphqlType]:
+        return list(self._graphql_type_by_name.values())
 
     def get_graphql_type_by_name(self, type: str) -> Optional[GraphqlType]:
         return self._graphql_type_by_name.get(type)

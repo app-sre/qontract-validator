@@ -1,0 +1,226 @@
+schemas:
+  "schema-1.yml":
+    properties:
+      simple_field:
+        type: string
+      simple_ref:
+        "$ref": "/common-1.json#/definitions/resourceref"
+      simple_object:
+        type: object
+        properties:
+          simple_nested_field:
+            type: string
+          simple_nested_ref:
+            "$ref": "/common-1.json#/definitions/resourceref"
+      schema_ref_field:
+        "$ref": "embedded-schema-1.yml"
+      array_field_to_nested_refs:
+        type: array
+        items:
+          type: object
+          properties:
+            simple_field:
+              type: string
+            simple_nested_ref:
+              "$ref": "/common-1.json#/definitions/resourceref"
+      one_of_ref_array:
+        type: array
+        items:
+          "$ref": "one-of-type-1.yml"
+      cross_ref_field_to_top_level_type:
+        "$ref": "/common-1.json#/definitions/crossref"
+        "$schemaRef": "another-schema-1.yml"
+
+  "embedded-schema-1.yml":
+    properties:
+      simple_field:
+        type: string
+      simple_ref:
+        "$ref": "/common-1.json#/definitions/resourceref"
+      simple_object:
+        type: object
+        properties:
+          simple_nested_field:
+            type: string
+          simple_nested_ref:
+            "$ref": "/common-1.json#/definitions/resourceref"
+
+  "another-schema-1.yml":
+    properties:
+      simple_field:
+        type: string
+      simple_ref:
+        "$ref": "/common-1.json#/definitions/resourceref"
+      simple_object:
+        type: object
+        properties:
+          simple_nested_field:
+            type: string
+          simple_nested_ref:
+            "$ref": "/common-1.json#/definitions/resourceref"
+      schema_loop_field:
+        "$ref": "/common-1.json#/definitions/crossref"
+        "$schemaRef": "schema-1.yml"
+
+  "one-of-type-1.yml":
+    properties:
+      type_field:
+        type: string
+    oneOf:
+    - properties:
+        type_field:
+          type:
+            string
+          enum:
+          - flavour-1
+        a_field:
+          "$ref": "/common-1.json#/definitions/resourceref"
+    - properties:
+        type_field:
+          type:
+            string
+          enum:
+          - flavour-2
+        a_field:
+          type: string
+
+graphql:
+  $schema: "graphql-schema-1.yml"
+  confs:
+  - name: Schema_v1
+    fields:
+    - name: simple_field
+      type: string
+    - name: simple_ref
+      type: string
+      isResourceRef: true
+    - name: simple_object
+      type: SimpleObject_v1
+    - name: schema_ref_field
+      type: EmbeddedSchema_v1
+    - name: array_field_to_nested_refs
+      type: EmbeddedSchema_v1
+      isList: true
+    - name: cross_ref_field_to_top_level_type
+      type: AnotherSchema_v1
+    - name: one_of_ref_array
+      type: OneOfType_v1
+      isList: true
+
+  - name: SimpleObject_v1
+    fields:
+    - name: simple_nested_field
+      type: string
+    - name: simple_nested_ref
+      type: string
+      isResourceRef: true
+
+  - name: EmbeddedSchema_v1
+    fields:
+    - name: simple_field
+      type: string
+    - name: simple_ref
+      type: string
+      isResourceRef: true
+    - name: simple_object
+      type: SimpleObject_v1
+
+  - name: AnotherSchema_v1
+    fields:
+    - name: simple_field
+      type: string
+    - name: simple_ref
+      type: string
+      isResourceRef: true
+    - name: simple_object
+      type: SimpleObject_v1
+    - name: schema_loop_field
+      type: Schema_v1
+
+  - name: OneOfType_v1
+    isInterface: true
+    interfaceResolve:
+      strategy: fieldMap
+      field: type_field
+      fieldMap:
+        flavour-1: SubType_v1
+        flavour-2: SubType_v2
+    fields:
+    - name: type_field
+      type: string
+
+  - name: SubType_v1
+    interface: OneOfType_v1
+    fields:
+    - name: a_field
+      type: string
+      isResourceRef: true
+
+  - name: SubType_v2
+    interface: OneOfType_v1
+    fields:
+    - name: a_field
+      type: string
+
+  - name: Query
+    fields:
+    - type: Schema_v1
+      datafileSchema: "schema-1.yml"
+    - type: AnotherSchema_v1
+      datafileSchema: "another-schema-1.yml"
+
+data:
+  file-1-schema-1.yml:
+    $schema: schema-1.yml
+    simple_field: bla
+    simple_ref: /resource-1.yml
+    simple_object:
+      simple_nested_field: bla
+      simple_nested_ref: /resource-1.yml
+    schema_ref_field:
+      simple_field: bla
+      simple_ref: /resource-2.yml
+      simple_object:
+        simple_nested_field: bla
+        simple_nested_ref: /resource-2.yml
+    array_field_to_nested_refs:
+    - simple_field: bla
+      simple_nested_ref: /resource-3.yml
+    - simple_field: bla
+      simple_nested_ref: /resource-3.yml
+    cross_ref_field_to_top_level_type:
+      $ref: file-2-another-schema-1.yml
+    one_of_ref_array:
+    - $schema: one-of-type-1.yml
+      type_field: flavour-1
+      a_field: /resource-4.yml
+    - $schema: one-of-type-1.yml
+      type_field: flavour-2
+      a_field: bla
+    - $schema: one-of-type-1.yml
+      type_field: flavour-1
+      a_field: /resource-4.yml
+
+  file-2-another-schema-1.yml:
+    $schema: another-schema-1.yml
+    simple_field: bla
+    simple_ref: /resource-5.yml
+    simple_object:
+      simple_nested_field: bla
+      simple_nested_ref: /resource-5.yml
+    schema_loop_field:
+      $ref: file-1-schema-1.yml
+
+resources:
+  /resource-1.yml:
+    backrefs: []
+  /resource-2.yml:
+    backrefs: []
+  /resource-3.yml:
+    backrefs: []
+  /resource-4.yml:
+    backrefs: []
+  /resource-5.yml:
+    backrefs: []
+  /resource-6.yml:
+    backrefs: []
