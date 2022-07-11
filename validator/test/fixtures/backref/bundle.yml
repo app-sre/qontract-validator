@@ -91,7 +91,7 @@ graphql:
     type: string
   - name: simple_ref
     type: string
-    isResourceRef: true
+    isResource: true
   - name: simple_object
     type: SimpleObject_v1
   - name: schema_ref_field
@@ -111,7 +111,7 @@ graphql:
     type: string
   - name: simple_nested_ref
     type: string
-    isResourceRef: true
+    isResource: true
 
 - name: EmbeddedSchema_v1
   fields:
@@ -119,7 +119,7 @@ graphql:
     type: string
   - name: simple_ref
     type: string
-    isResourceRef: true
+    isResource: true
   - name: simple_object
     type: SimpleObject_v1
 
@@ -129,7 +129,7 @@ graphql:
     type: string
   - name: simple_ref
     type: string
-    isResourceRef: true
+    isResource: true
   - name: simple_object
     type: SimpleObject_v1
   - name: schema_loop_field
@@ -152,7 +152,7 @@ graphql:
   fields:
   - name: a_field
     type: string
-    isResourceRef: true
+    isResource: true
 
 - name: SubType_v2
   interface: OneOfType_v1
