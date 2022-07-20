@@ -429,6 +429,10 @@ def get_schema_info_from_pointer(schema, ptr, schemas_bundle) -> list[dict]:
                     except KeyError:
                         pass
                         # this subtype is not the one we are looking for
+                    try:
+                        schemas.append(schemas_bundle[ref["$schemaRef"]])
+                    except KeyError:
+                        pass
                 if not schemas:
                     raise KeyError(
                         f"unable to resolve schema for {ptr} "
