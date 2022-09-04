@@ -1,5 +1,5 @@
 from validator.bundle import Bundle
-from validator.resourceref import resolve_resource_references
+from validator.postprocess import postprocess_bundle
 from validator.test.fixtures import Fixtures
 
 import pytest
@@ -20,7 +20,7 @@ def bundle(request) -> Bundle:
 
 
 def test_simple_refs(bundle: Bundle):
-    resolve_resource_references(bundle)
+    postprocess_bundle(bundle)
     expected = [
         {
             "path": "file-1-schema-1.yml",
@@ -39,7 +39,7 @@ def test_simple_refs(bundle: Bundle):
 
 
 def test_array_field_to_nested_refs(bundle: Bundle):
-    resolve_resource_references(bundle)
+    postprocess_bundle(bundle)
     expected = [
         {
             "path": "file-1-schema-1.yml",
@@ -61,7 +61,7 @@ def test_embedded_schemas(bundle):
     """
     shows that resourceref detection works for embedded types ($ref)
     """
-    resolve_resource_references(bundle)
+    postprocess_bundle(bundle)
 
     expected = [
         {
@@ -85,7 +85,7 @@ def test_one_of_refs(bundle: Bundle):
     this test shows that refs can be found in subtypes while the same
     field name can be a ref in one subtype but not in another
     """
-    resolve_resource_references(bundle)
+    postprocess_bundle(bundle)
     expected = [
         {
             "path": "file-1-schema-1.yml",
@@ -108,7 +108,7 @@ def test_circular_ref_top_level_type(bundle: Bundle):
     shows that reference loops are dealth with an reference detection
     stops looking in other top level types
     """
-    resolve_resource_references(bundle)
+    postprocess_bundle(bundle)
     expected = [
         {
             "path": "file-2-another-schema-1.yml",
