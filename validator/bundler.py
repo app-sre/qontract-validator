@@ -13,7 +13,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 from validator.bundle import Bundle
 
 from validator.utils import parse_anymarkup_file
-from validator.resourceref import resolve_resource_references
+from validator.postprocess import postprocess_bundle
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
 
@@ -130,6 +130,6 @@ def main(resolve, thread_pool_size,
         resources=bundle_resources(resource_dir, thread_pool_size)
     )
 
-    resolve_resource_references(bundle)
+    postprocess_bundle(bundle)
 
     sys.stdout.write(json.dumps(bundle.to_dict(), indent=4) + "\n")
