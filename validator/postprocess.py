@@ -1,9 +1,9 @@
 import collections
-import sys
 from contextlib import contextmanager
 from typing import Any, Optional, Tuple
 from jsonpath_ng.ext import parse
 import hashlib
+import logging
 
 from validator.bundle import Bundle, GraphqlType
 
@@ -57,7 +57,7 @@ def ensure_context_uniqueness(df, df_path: str, config: list):
             if object_context_id is None:
                 continue
             if object_context_id in ids_in_context:
-                print(
+                logging.error(
                     f"{df_path} - {str(jsonpath)} - "
                     f"the context identifier {identifier} = {object_context_id} "
                     "is not unique within this context"
@@ -120,7 +120,9 @@ def postprocess_bundle(bundle: Bundle):
                         }
                     )
                 else:
-                    print(f"resource {resource_usage.value} not found", file=sys.stderr)
+                    logging.error(
+                        f"resource file {resource_usage.value} not found"
+                    )
                     exit(1)
 
 
