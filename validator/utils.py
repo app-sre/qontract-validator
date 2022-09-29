@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import yaml
@@ -8,7 +9,7 @@ except ImportError:
     from yaml import SafeLoader as SafeLoader
 
 
-def parse_anymarkup_file(filename):
+def parse_anymarkup_file(filename, calc_checksum=False):
     if not os.path.isfile(filename):
         raise FileNotFoundError(f'could not find file {filename}')
 
@@ -17,20 +18,32 @@ def parse_anymarkup_file(filename):
     res = {}
     if file_ext in ['yaml', 'yml']:
         fh = open(filename, "r", encoding="utf-8")
-        res = _load_yaml(fh)
+        content = fh.read()
+        res = _load_yaml(content)
     elif file_ext in ['json']:
         fh = open(filename, "r", encoding="utf-8")
-        res = _load_json(fh)
+        content = fh.read()
+        res = _load_json(content)
     else:
         raise NotImplementedError(
             f'markup parsing for extension {file_ext} is not implemented')
 
-    return res
+    if calc_checksum:
+        checksum = _checksum(content.encode())
+    else:
+        checksum = None
+    return res, checksum
 
 
-def _load_json(fh):
-    return json.load(fh)
+def _load_json(data):
+    return json.loads(data)
 
 
-def _load_yaml(fh, Loader=SafeLoader):
-    return yaml.load(fh, Loader=Loader)
+def _load_yaml(data, Loader=SafeLoader):
+    return yaml.load(data, Loader=Loader)
+
+
+def _checksum(data):
+    m = hashlib.sha256()
+    m.update(data)
+    return m.hexdigest()

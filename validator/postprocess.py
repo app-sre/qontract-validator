@@ -77,10 +77,18 @@ def ensure_context_uniqueness(df, df_path: str, config: list):
                 )
 
 
-def postprocess_bundle(bundle: Bundle):
+def postprocess_bundle(bundle: Bundle, checksum_field_name: Optional[str]):
 
     # build up a list of resource references on a type level
     context = Context(bundle)
+
+    # inject $sha256sum field to datafile schemas
+    for s in bundle.schemas.values():
+        if s["$schema"] == "/metaschema-1.json":
+            s["properties"][checksum_field_name] = {
+                "type": "string",
+                "description": "sha256sum of the datafile",
+            }
 
     # find all jsonpath to resource reference fields in the schemas
     datafile_schema_resource_ref_jsonpaths: dict[str, list] = {}
