@@ -22,13 +22,24 @@ logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
 # we don't use pyyaml to parse it as they are jinja templates in most cases
 SCHEMA_RE = re.compile(r'^\$schema: (?P<schema>.+\.ya?ml)$', re.MULTILINE)
 
+CHECKSUM_SCHEMA_FIELD = "$file_sha256sum"
 
-def bundle_datafiles(data_dir, thread_pool_size):
-    specs = init_specs(data_dir)
+
+def bundle_datafiles(data_dir, thread_pool_size, checksum_field_name=None):
+    specs = init_specs(data_dir, checksum_field_name is not None)
     pool = ThreadPool(thread_pool_size)
     results = pool.map(bundle_datafile_spec, specs)
-    results = [r for r in results if r is not None]
-    return {k: v for k, v in results}
+
+    def do_inject_checksum(content, checksum):
+        if checksum_field_name:
+            content[checksum_field_name] = checksum
+        return content
+
+    return {
+        path: do_inject_checksum(content, sha256sum)
+        for path, content, sha256sum in results
+        if path is not None
+    }
 
 
 def bundle_datafile_spec(spec):
@@ -36,14 +47,14 @@ def bundle_datafile_spec(spec):
     root = spec['root']
     name = spec['name']
     if not re.search(r'\.(ya?ml|json)$', name):
-        return None
+        return None, None, None
 
     path = os.path.join(root, name)
     rel_abs_path = path[len(work_dir):]
 
     logging.info("Processing: {}\n".format(rel_abs_path))
-
-    return rel_abs_path, parse_anymarkup_file(path)
+    content, checksum = parse_anymarkup_file(path, spec['calc_checksum'])
+    return rel_abs_path, content, checksum
 
 
 def bundle_resources(resource_dir, thread_pool_size):
@@ -81,7 +92,7 @@ def bundle_resource_spec(spec):
                           "backrefs": []}
 
 
-def init_specs(work_dir):
+def init_specs(work_dir, calc_checksum=False):
     specs = []
     for root, dirs, files in os.walk(work_dir, topdown=False):
         for name in files:
@@ -89,13 +100,15 @@ def init_specs(work_dir):
                 "work_dir": work_dir,
                 "root": root,
                 "name": name,
+                "calc_checksum": calc_checksum,
             }
             specs.append(spec)
     return specs
 
 
 def bundle_graphql(graphql_schema_file):
-    return parse_anymarkup_file(graphql_schema_file)
+    content, _ = parse_anymarkup_file(graphql_schema_file)
+    return content
 
 
 def fix_dir(directory):
@@ -126,10 +139,14 @@ def main(resolve, thread_pool_size,
         git_commit_timestamp=git_commit_timestamp,
         schemas=bundle_datafiles(schema_dir, thread_pool_size),
         graphql=bundle_graphql(graphql_schema_file),
-        data=bundle_datafiles(data_dir, thread_pool_size),
+        data=bundle_datafiles(
+            data_dir,
+            thread_pool_size,
+            checksum_field_name=CHECKSUM_SCHEMA_FIELD
+        ),
         resources=bundle_resources(resource_dir, thread_pool_size)
     )
 
-    postprocess_bundle(bundle)
+    postprocess_bundle(bundle, checksum_field_name=CHECKSUM_SCHEMA_FIELD)
 
     sys.stdout.write(json.dumps(bundle.to_dict()) + "\n")

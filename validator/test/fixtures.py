@@ -20,4 +20,5 @@ class Fixtures(object):
             return f.read().strip()
 
     def get_anymarkup(self, fixture):
-        return parse_anymarkup_file(self.path(fixture))
+        data, _ = parse_anymarkup_file(self.path(fixture))
+        return data
