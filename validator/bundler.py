@@ -132,4 +132,4 @@ def main(resolve, thread_pool_size,
 
     postprocess_bundle(bundle)
 
-    sys.stdout.write(json.dumps(bundle.to_dict(), indent=4) + "\n")
+    sys.stdout.write(json.dumps(bundle.to_dict()) + "\n")
