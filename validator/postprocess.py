@@ -199,8 +199,10 @@ def _find_resource_field_paths(
         ):
             unique_properties.append(property_name)
         if property_schema_name == RESOURCE_REF:
-            # todo check if this can be in a list too?
-            resource_paths.append(property_name)
+            if is_array:
+                resource_paths.append(f"{property_name}[*]")
+            else:
+                resource_paths.append(property_name)
         elif property_schema_object:
             property_graphql_type = (
                 graphql_type.get_referenced_field_type(property_name)
