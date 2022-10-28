@@ -1,4 +1,4 @@
-import collections
+from collections.abc import Hashable
 from contextlib import contextmanager
 from typing import Any, Optional, Tuple
 from jsonpath_ng.ext import parse
@@ -34,7 +34,7 @@ class Context:
 
 def itemgetter(properties, obj):
     def to_hashable(field):
-        if isinstance(field, collections.Hashable):
+        if isinstance(field, Hashable):
             return field
         else:
             return repr(field)
