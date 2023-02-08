@@ -60,7 +60,7 @@ def bundle_resources(resource_dir, thread_pool_size):
     specs = init_specs(resource_dir)
     pool = ThreadPool(thread_pool_size)
     results = pool.map(bundle_resource_spec, specs)
-    return {k: v for k, v in results}
+    return results
 
 
 def bundle_resource_spec(spec):
