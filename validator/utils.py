@@ -7,7 +7,7 @@ import yaml
 try:
     from yaml import CSafeLoader as SafeLoader
 except ImportError:
-    from yaml import SafeLoader
+    from yaml import SafeLoader  # type: ignore
 
 
 def parse_anymarkup_file(filename, calc_checksum=False):

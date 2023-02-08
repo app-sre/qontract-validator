@@ -218,7 +218,7 @@ def validate_unique_fields(bundle: Bundle):
         if "datafileSchema" in field:
             datafiles_map[field["type"]] = field["datafileSchema"]
 
-    unique_map = {}
+    unique_map: dict = {}
     for gql_type, gql_fields in graphql.items():
         if gql_type == "Query":
             continue
@@ -233,7 +233,7 @@ def validate_unique_fields(bundle: Bundle):
             if field.get("isUnique"):
                 unique_map[datafile_schema].append(field["name"])
 
-    unique_fields = {}
+    unique_fields: dict = {}
     for filename, data in data_bundle.items():
         for field in unique_map.get(data["$schema"], []):
             key = (data["$schema"], field, data.get(field))
