@@ -18,13 +18,13 @@ def parse_anymarkup_file(filename, calc_checksum=False):
 
     res = {}
     if file_ext in ["yaml", "yml"]:
-        fh = open(filename, "r", encoding="utf-8")
-        content = fh.read()
-        res = _load_yaml(content)
+        with open(filename, "r", encoding="utf-8") as fh:
+            content = fh.read()
+            res = _load_yaml(content)
     elif file_ext in ["json"]:
-        fh = open(filename, "r", encoding="utf-8")
-        content = fh.read()
-        res = _load_json(content)
+        with open(filename, "r", encoding="utf-8") as fh:
+            content = fh.read()
+            res = _load_json(content)
     else:
         raise NotImplementedError(
             f"markup parsing for extension {file_ext} is not implemented"
