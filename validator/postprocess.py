@@ -3,7 +3,6 @@ import logging
 import sys
 from collections.abc import Hashable
 from contextlib import contextmanager
-import sys
 from typing import (
     Any,
     Optional,
