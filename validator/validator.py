@@ -456,7 +456,7 @@ def main(only_errors, bundle):
                 bundle.schemas, "graphql-schemas/schema.yml", bundle.graphql
             ).dump()
         ]
-        if type(bundle.graphql) is dict and bundle.graphql["$schema"]
+        if isinstance(bundle.graphql, dict) and bundle.graphql["$schema"]
         else []
     )
 

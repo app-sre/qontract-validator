@@ -58,14 +58,14 @@ class Bundle:
     _graphql_type_by_name: dict[str, GraphqlType] = field(init=False)
 
     def __post_init__(self):
-        if type(self.graphql) is dict and (
+        if isinstance(self.graphql, dict) and (
             self.graphql["confs"] and self.graphql["$schema"]
         ):
             self._graphql_type_by_name = {
                 t["name"]: GraphqlType(t["name"], t, self)
                 for t in self.graphql["confs"]
             }
-        elif type(self.graphql) is list:
+        elif isinstance(self.graphql, list):
             self._graphql_type_by_name = {
                 t["name"]: GraphqlType(t["name"], t, self) for t in self.graphql
             }
