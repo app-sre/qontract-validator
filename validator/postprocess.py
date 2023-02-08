@@ -327,8 +327,7 @@ def _resolve_property_schema(
             array, schema_ref, schema = _resolve_property_schema(variant, schemas)
             if schema_ref or schema:
                 return array, schema_ref, schema
-        else:
-            return False, None, None
+        return False, None, None
     else:
         ref = property.get("$ref")
         schema_ref = property.get("$schemaRef")
