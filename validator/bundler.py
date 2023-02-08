@@ -1,19 +1,18 @@
 #!/usr/bin/env python2
 
 import hashlib
+import json
+import logging
 import os
 import re
 import sys
-import logging
+from multiprocessing.dummy import Pool as ThreadPool
 
 import click
-import json
 
-from multiprocessing.dummy import Pool as ThreadPool
 from validator.bundle import Bundle
-
-from validator.utils import parse_anymarkup_file
 from validator.postprocess import postprocess_bundle
+from validator.utils import parse_anymarkup_file
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.WARNING)
 

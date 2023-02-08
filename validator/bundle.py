@@ -1,6 +1,13 @@
-from dataclasses import dataclass, field
 import json
-from typing import Any, Optional, Union
+from dataclasses import (
+    dataclass,
+    field,
+)
+from typing import (
+    Any,
+    Optional,
+    Union,
+)
 
 
 class InvalidBundleException(Exception):

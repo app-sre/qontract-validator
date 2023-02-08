@@ -1,8 +1,8 @@
+import pytest
+
 from validator.bundle import Bundle
 from validator.postprocess import postprocess_bundle
 from validator.test.fixtures import Fixtures
-
-import pytest
 
 
 @pytest.fixture(params=["bundle.yml", "bundle_with_graphql_schema_header.yml"])

@@ -1,18 +1,19 @@
 import json
-import yaml
 import logging
 import sys
-
 from enum import Enum
 from functools import lru_cache
 
 import click
 import jsonschema
-from jsonschema import Draft6Validator as jsonschema_validator
 import requests
+import yaml
+from jsonschema import Draft6Validator as jsonschema_validator
 
-from validator.bundle import load_bundle, Bundle
-
+from validator.bundle import (
+    Bundle,
+    load_bundle,
+)
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.WARNING)
 

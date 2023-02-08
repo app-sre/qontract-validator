@@ -1,12 +1,20 @@
-from collections.abc import Hashable
-from contextlib import contextmanager
-from typing import Any, Optional, Tuple
-from jsonpath_ng.ext import parse
 import hashlib
 import logging
+import sys
+from collections.abc import Hashable
+from contextlib import contextmanager
+from typing import (
+    Any,
+    Optional,
+    Tuple,
+)
 
-from validator.bundle import Bundle, GraphqlType
+from jsonpath_ng.ext import parse
 
+from validator.bundle import (
+    Bundle,
+    GraphqlType,
+)
 
 RESOURCE_REF = "/common-1.json#/definitions/resourceref"
 CROSS_REF = "/common-1.json#/definitions/crossref"
