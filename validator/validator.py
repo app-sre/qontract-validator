@@ -100,7 +100,7 @@ class ValidationError:
             "summary": self.summary,
             "status": "ERROR",
             "reason": self.reason,
-            "error": self.error.__str__(),
+            "error": str(self.error),
         }
 
         result.update(self.kwargs)
