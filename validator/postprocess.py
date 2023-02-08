@@ -3,6 +3,7 @@ import logging
 import sys
 from collections.abc import Hashable
 from contextlib import contextmanager
+import sys
 from typing import (
     Any,
     Optional,
@@ -71,7 +72,7 @@ def ensure_context_uniqueness(df, df_path: str, config: list):
                     f"the context identifier {identifier} = {object_context_id} "
                     "is not unique within this context"
                 )
-                exit(1)
+                sys.exit(1)
             else:
                 ids_in_context.add(object_context_id)
                 hash_id = hashlib.md5()
@@ -133,7 +134,7 @@ def postprocess_bundle(bundle: Bundle, checksum_field_name: Optional[str] = None
                     )
                 else:
                     logging.error(f"resource file {resource_usage.value} not found")
-                    exit(1)
+                    sys.exit(1)
 
 
 def process_data_file_schema_object(
