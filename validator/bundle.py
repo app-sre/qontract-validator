@@ -4,6 +4,7 @@ from dataclasses import (
     field,
 )
 from typing import (
+    IO,
     Any,
     Optional,
     Union,
@@ -104,7 +105,7 @@ class Bundle:
         return datafile_schema in self._top_level_schemas
 
 
-def load_bundle(bundle_source: str) -> Bundle:
+def load_bundle(bundle_source: IO) -> Bundle:
     bundle_data = json.load(bundle_source)
     return Bundle(
         data=bundle_data["data"],

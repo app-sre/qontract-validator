@@ -3,6 +3,7 @@ import logging
 import sys
 from enum import Enum
 from functools import lru_cache
+from typing import IO
 
 import click
 import jsonschema
@@ -411,9 +412,9 @@ def get_schema_info_from_pointer(schema, ptr, schemas_bundle) -> list[dict]:
 
 @click.command()
 @click.option("--only-errors", is_flag=True, help="Print only errors")
-@click.argument("bundle", type=click.File("rb"))
-def main(only_errors, bundle):
-    bundle = load_bundle(bundle)
+@click.argument("bundlefile", type=click.File("rb"))
+def main(only_errors, bundlefile: IO):
+    bundle = load_bundle(bundlefile)
 
     # Validate schemas
     results_schemas = [
