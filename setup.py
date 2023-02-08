@@ -14,7 +14,7 @@ setup(
     packages=find_packages(exclude=('tests',)),
 
     install_requires=[
-        "Click~=7.1",
+        "Click~=8.1",
         "jsonschema~=3.2",
         "PyYAML~=5.3",
         "requests~=2.24",
