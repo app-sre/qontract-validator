@@ -2,7 +2,7 @@ import validator.validator as validator
 from validator.test.fixtures import Fixtures
 
 
-class TestGetSchemaInfoFromPointer(object):
+class TestGetSchemaInfoFromPointer:
     fxt = Fixtures("get_schema_info_from_pointer")
 
     def do_fxt_test(self, fxt_path):
