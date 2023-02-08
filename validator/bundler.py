@@ -51,7 +51,7 @@ def bundle_datafile_spec(spec):
     path = os.path.join(root, name)
     rel_abs_path = path[len(work_dir) :]
 
-    logging.info("Processing: {}\n".format(rel_abs_path))
+    logging.info(f"Processing: {rel_abs_path}\n")
     content, checksum = parse_anymarkup_file(path, spec["calc_checksum"])
     return rel_abs_path, content, checksum
 
@@ -69,7 +69,7 @@ def bundle_resource_spec(spec):
     name = spec["name"]
     path = os.path.join(root, name)
     rel_abs_path = path[len(work_dir) :]
-    logging.info("Resource: {}\n".format(rel_abs_path))
+    logging.info(f"Resource: {rel_abs_path}\n")
 
     with open(path, "rb") as f:
         content = f.read().decode(errors="replace")

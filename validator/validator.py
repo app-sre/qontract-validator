@@ -20,14 +20,14 @@ logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.WARNING)
 
 class IncorrectSchema(Exception):
     def __init__(self, got, expecting):
-        message = "incorrect schema: got `{}`, expecting `{}`".format(got, expecting)
+        message = f"incorrect schema: got `{got}`, expecting `{expecting}`"
         super(Exception, self).__init__(message)
 
 
 class MissingSchemaFile(Exception):
     def __init__(self, path):
         self.path = path
-        message = "schema not found: `{}`".format(path)
+        message = f"schema not found: `{path}`"
         super(Exception, self).__init__(message)
 
 
@@ -46,7 +46,7 @@ class ValidationOK:
         self.kind = kind
         self.filename = filename
         self.schema_url = schema_url
-        self.summary = "OK: {} ({})".format(self.filename, self.schema_url)
+        self.summary = f"OK: {self.filename} ({self.schema_url})"
 
     def dump(self):
         return {
@@ -68,9 +68,7 @@ class ValidationRefOK:
         self.filename = filename
         self.schema_url = schema_url
         self.ref = ref
-        self.summary = "OK: {} ({}) ({})".format(
-            self.filename, self.ref, self.schema_url
-        )
+        self.summary = f"OK: {self.filename} ({self.ref}) ({self.schema_url})"
 
     def dump(self):
         return {
@@ -95,7 +93,7 @@ class ValidationError:
         self.reason = reason
         self.error = error
         self.kwargs = kwargs
-        self.summary = "ERROR: {}".format(self.filename)
+        self.summary = f"ERROR: {self.filename}"
 
     def dump(self):
         result = {
@@ -111,7 +109,7 @@ class ValidationError:
 
     def error_info(self):
         if self.error.message:
-            msg = "{}\n{}".format(self.reason, self.error.message)
+            msg = f"{self.reason}\n{self.error.message}"
         else:
             msg = self.reason
 
@@ -135,7 +133,7 @@ def get_handlers(schemas_bundle):
 def validate_schema(schemas_bundle, filename, schema_data):
     kind = ValidatedFileKind.SCHEMA
 
-    logging.info("validating schema: {}".format(filename))
+    logging.info(f"validating schema: {filename}")
 
     try:
         meta_schema_url = schema_data["$schema"]
@@ -170,7 +168,7 @@ def validate_schema(schemas_bundle, filename, schema_data):
 def validate_file(schemas_bundle, filename, data):
     kind = ValidatedFileKind.DATA_FILE
 
-    logging.info("validating file: {}".format(filename))
+    logging.info(f"validating file: {filename}")
 
     try:
         schema_url = data["$schema"]
@@ -248,7 +246,7 @@ def validate_unique_fields(bundle: Bundle):
                 ValidatedFileKind.UNIQUE,
                 filenames[0],
                 "DUPLICATE_UNIQUE_FIELD",
-                "The field '{}' is repeated: {}".format(key[1], filenames),
+                f"The field '{key[1]}' is repeated: {filenames}",
             )
             results.append(error.dump())
 
@@ -346,11 +344,11 @@ def find_refs(obj, ptr=None, refs=None):
             refs.append((ptr, obj))
         else:
             for key, item in obj.items():
-                new_ptr = "{}/{}".format(ptr, key)
+                new_ptr = f"{ptr}/{key}"
                 find_refs(item, new_ptr, refs)
     elif isinstance(obj, list):
         for index, item in enumerate(obj):
-            new_ptr = "{}/{}".format(ptr, index)
+            new_ptr = f"{ptr}/{index}"
             find_refs(item, new_ptr, refs)
 
     return refs
