@@ -95,7 +95,7 @@ def bundle_resource_spec(spec):
 
 def init_specs(work_dir, calc_checksum=False):
     specs = []
-    for root, dirs, files in os.walk(work_dir, topdown=False):
+    for root, _, files in os.walk(work_dir, topdown=False):
         for name in files:
             spec = {
                 "work_dir": work_dir,
