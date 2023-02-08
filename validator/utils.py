@@ -11,22 +11,23 @@ except ImportError:
 
 def parse_anymarkup_file(filename, calc_checksum=False):
     if not os.path.isfile(filename):
-        raise FileNotFoundError(f'could not find file {filename}')
+        raise FileNotFoundError(f"could not find file {filename}")
 
-    file_ext = os.path.splitext(filename)[1][len(os.path.extsep):]
+    file_ext = os.path.splitext(filename)[1][len(os.path.extsep) :]
 
     res = {}
-    if file_ext in ['yaml', 'yml']:
+    if file_ext in ["yaml", "yml"]:
         fh = open(filename, "r", encoding="utf-8")
         content = fh.read()
         res = _load_yaml(content)
-    elif file_ext in ['json']:
+    elif file_ext in ["json"]:
         fh = open(filename, "r", encoding="utf-8")
         content = fh.read()
         res = _load_json(content)
     else:
         raise NotImplementedError(
-            f'markup parsing for extension {file_ext} is not implemented')
+            f"markup parsing for extension {file_ext} is not implemented"
+        )
 
     if calc_checksum:
         checksum = _checksum(content.encode())

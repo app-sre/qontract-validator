@@ -38,6 +38,7 @@ def itemgetter(properties, obj):
             return field
         else:
             return repr(field)
+
     if len(properties) == 1:
         item = properties[0]
         return to_hashable(obj.get(item))
@@ -70,11 +71,7 @@ def ensure_context_uniqueness(df, df_path: str, config: list):
                     hash_id.update(str(i).encode())
                 object.value["__identifier"] = hash_id.hexdigest()
             if sub_paths:
-                ensure_context_uniqueness(
-                    object.value,
-                    df_path,
-                    sub_paths
-                )
+                ensure_context_uniqueness(object.value, df_path, sub_paths)
 
 
 def postprocess_bundle(bundle: Bundle, checksum_field_name: Optional[str] = None):
@@ -112,9 +109,7 @@ def postprocess_bundle(bundle: Bundle, checksum_field_name: Optional[str] = None
     for df_path, df in bundle.data.items():
         df_schema = df["$schema"]
         ensure_context_uniqueness(
-            df,
-            df_path,
-            datafile_schema_object_identifier_jsonpaths.get(df_schema, [])
+            df, df_path, datafile_schema_object_identifier_jsonpaths.get(df_schema, [])
         )
         for jsonpath in datafile_schema_resource_ref_jsonpaths.get(df_schema, []):
             for resource_usage in jsonpath.find(df):
@@ -129,9 +124,7 @@ def postprocess_bundle(bundle: Bundle, checksum_field_name: Optional[str] = None
                         }
                     )
                 else:
-                    logging.error(
-                        f"resource file {resource_usage.value} not found"
-                    )
+                    logging.error(f"resource file {resource_usage.value} not found")
                     exit(1)
 
 
@@ -146,16 +139,19 @@ def process_data_file_schema_object(
         return (
             ctx.datafile_schema_resource_ref_paths[datafile_schema],
             ctx.datafile_object_identifier_paths[datafile_schema],
-            []
+            [],
         )
     elif datafile_schema in ctx.schema_path:
         # loop prevention
         return [], {}, []
     else:
-        resource_ref_paths, object_identifiers, unique_identifiers = \
-            _find_resource_field_paths(
-                datafile_schema, schema_object, graphql_type, ctx
-            )
+        (
+            resource_ref_paths,
+            object_identifiers,
+            unique_identifiers,
+        ) = _find_resource_field_paths(
+            datafile_schema, schema_object, graphql_type, ctx
+        )
         # fill result cache
         ctx.datafile_schema_resource_ref_paths[datafile_schema] = resource_ref_paths
         ctx.datafile_object_identifier_paths[datafile_schema] = dict(object_identifiers)
@@ -190,12 +186,11 @@ def _find_resource_field_paths(
             property_schema_name,
             property_schema_object,
         ) = _resolve_property_schema(property, ctx.bundle.schemas)
-        property_gql_field = \
-            graphql_type.fields_by_name.get(property_name, {}) \
-            if graphql_type else {}
-        if (
-            property_gql_field.get("isContextUnique", False) or
-            property_gql_field.get("isUnique", False)
+        property_gql_field = (
+            graphql_type.fields_by_name.get(property_name, {}) if graphql_type else {}
+        )
+        if property_gql_field.get("isContextUnique", False) or property_gql_field.get(
+            "isUnique", False
         ):
             unique_properties.append(property_name)
         if property_schema_name == RESOURCE_REF:
@@ -232,14 +227,13 @@ def _find_resource_field_paths(
                         (
                             sub_schema_resource_paths,
                             sub_object_identifiers,
-                            sub_unique_properties
-                         ) = \
-                            _find_resource_field_paths(
-                                property_schema_name,
-                                sub_schema_object,
-                                property_graphql_sub_type,
-                                ctx,
-                            )
+                            sub_unique_properties,
+                        ) = _find_resource_field_paths(
+                            property_schema_name,
+                            sub_schema_object,
+                            property_graphql_sub_type,
+                            ctx,
+                        )
                         for p in sub_schema_resource_paths:
                             resource_paths.append(
                                 f"{property_name}[?(@.{interfaceResolverField}"
@@ -255,9 +249,8 @@ def _find_resource_field_paths(
                                 sub_unique_properties,
                                 [
                                     (parse(path), properties)
-                                    for path, properties
-                                    in sub_object_identifiers.items()
-                                ]
+                                    for path, properties in sub_object_identifiers.items()
+                                ],
                             )
                             property_schema_object["properties"]["__identifier"] = {
                                 "type": "string"
@@ -277,7 +270,7 @@ def _find_resource_field_paths(
                         (
                             property_resource_paths,
                             property_object_identifiers,
-                            property_unique_properties
+                            property_unique_properties,
                         ) = resolver_func(
                             property_schema_name,
                             property_schema_object,
@@ -290,23 +283,18 @@ def _find_resource_field_paths(
                         for p in property_resource_paths:
                             resource_paths.append(f"{property_name_jsonpath}.{p}")
                         if property_unique_properties:
-                            object_identifier_paths[
-                                property_name_jsonpath
-                            ] = (
+                            object_identifier_paths[property_name_jsonpath] = (
                                 property_unique_properties,
                                 [
                                     (parse(path), properties)
-                                    for path, properties
-                                    in property_object_identifiers.items()
-                                ]
+                                    for path, properties in property_object_identifiers.items()
+                                ],
                             )
                             property_schema_object["properties"]["__identifier"] = {
                                 "type": "string"
                             }
     if unique_properties:
-        schema_object["properties"]["__identifier"] = {
-            "type": "string"
-        }
+        schema_object["properties"]["__identifier"] = {"type": "string"}
     return resource_paths, object_identifier_paths, unique_properties
 
 
@@ -327,9 +315,7 @@ def _resolve_property_schema(
         return False, None, property
     elif "oneOf" in property:
         for variant in property.get("oneOf", []):
-            array, schema_ref, schema = _resolve_property_schema(
-                variant, schemas
-            )
+            array, schema_ref, schema = _resolve_property_schema(variant, schemas)
             if schema_ref or schema:
                 return array, schema_ref, schema
         else:

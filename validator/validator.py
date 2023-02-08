@@ -14,13 +14,12 @@ import requests
 from validator.bundle import load_bundle, Bundle
 
 
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
+logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.WARNING)
 
 
 class IncorrectSchema(Exception):
     def __init__(self, got, expecting):
-        message = "incorrect schema: got `{}`, expecting `{}`".format(
-            got, expecting)
+        message = "incorrect schema: got `{}`, expecting `{}`".format(got, expecting)
         super(Exception, self).__init__(message)
 
 
@@ -39,7 +38,7 @@ class ValidatedFileKind(Enum):
     UNIQUE = "UNIQUE"
 
 
-class ValidationOK():
+class ValidationOK:
     status = True
 
     def __init__(self, kind, filename, schema_url):
@@ -56,11 +55,11 @@ class ValidationOK():
                 "summary": self.summary,
                 "status": "OK",
                 "schema_url": self.schema_url,
-            }
+            },
         }
 
 
-class ValidationRefOK():
+class ValidationRefOK:
     status = True
 
     def __init__(self, kind, filename, ref, schema_url):
@@ -68,9 +67,9 @@ class ValidationRefOK():
         self.filename = filename
         self.schema_url = schema_url
         self.ref = ref
-        self.summary = "OK: {} ({}) ({})".format(self.filename,
-                                                 self.ref,
-                                                 self.schema_url)
+        self.summary = "OK: {} ({}) ({})".format(
+            self.filename, self.ref, self.schema_url
+        )
 
     def dump(self):
         return {
@@ -82,11 +81,11 @@ class ValidationRefOK():
                 "status": "OK",
                 "schema_url": self.schema_url,
                 "ref": self.ref,
-            }
+            },
         }
 
 
-class ValidationError():
+class ValidationError:
     status = False
 
     def __init__(self, kind, filename, reason, error, **kwargs):
@@ -102,16 +101,12 @@ class ValidationError():
             "summary": self.summary,
             "status": "ERROR",
             "reason": self.reason,
-            "error": self.error.__str__()
+            "error": self.error.__str__(),
         }
 
         result.update(self.kwargs)
 
-        return {
-            "filename": self.filename,
-            "kind": self.kind.value,
-            "result": result
-        }
+        return {"filename": self.filename, "kind": self.kind.value, "result": result}
 
     def error_info(self):
         if self.error.message:
@@ -133,18 +128,16 @@ def get_handlers(schemas_bundle):
     In this case we are overloading the empty string scheme, which will be the
     scheme detected for absolute or relative file paths.
     """
-    return {
-        '': lambda x: schemas_bundle[x]
-    }
+    return {"": lambda x: schemas_bundle[x]}
 
 
 def validate_schema(schemas_bundle, filename, schema_data):
     kind = ValidatedFileKind.SCHEMA
 
-    logging.info('validating schema: {}'.format(filename))
+    logging.info("validating schema: {}".format(filename))
 
     try:
-        meta_schema_url = schema_data[u'$schema']
+        meta_schema_url = schema_data["$schema"]
     except KeyError as e:
         return ValidationError(kind, filename, "MISSING_SCHEMA_URL", e)
 
@@ -154,9 +147,7 @@ def validate_schema(schemas_bundle, filename, schema_data):
         meta_schema = fetch_schema(meta_schema_url)
 
     resolver = jsonschema.RefResolver(
-        filename,
-        schema_data,
-        handlers=get_handlers(schemas_bundle)
+        filename, schema_data, handlers=get_handlers(schemas_bundle)
     )
 
     try:
@@ -164,12 +155,13 @@ def validate_schema(schemas_bundle, filename, schema_data):
         validator = jsonschema_validator(meta_schema, resolver=resolver)
         validator.validate(schema_data)
     except jsonschema.ValidationError as e:
-        return ValidationError(kind, filename, "VALIDATION_ERROR", e,
-                               meta_schema_url=meta_schema_url)
-    except (jsonschema.SchemaError,
-            jsonschema.exceptions.RefResolutionError) as e:
-        return ValidationError(kind, filename, "SCHEMA_ERROR", e,
-                               meta_schema_url=meta_schema_url)
+        return ValidationError(
+            kind, filename, "VALIDATION_ERROR", e, meta_schema_url=meta_schema_url
+        )
+    except (jsonschema.SchemaError, jsonschema.exceptions.RefResolutionError) as e:
+        return ValidationError(
+            kind, filename, "SCHEMA_ERROR", e, meta_schema_url=meta_schema_url
+        )
 
     return ValidationOK(kind, filename, meta_schema_url)
 
@@ -177,39 +169,39 @@ def validate_schema(schemas_bundle, filename, schema_data):
 def validate_file(schemas_bundle, filename, data):
     kind = ValidatedFileKind.DATA_FILE
 
-    logging.info('validating file: {}'.format(filename))
+    logging.info("validating file: {}".format(filename))
 
     try:
-        schema_url = data[u'$schema']
+        schema_url = data["$schema"]
     except KeyError as e:
         return ValidationError(kind, filename, "MISSING_SCHEMA_URL", e)
 
-    if not schema_url.startswith('http') and not schema_url.startswith('/'):
-        schema_url = '/' + schema_url
+    if not schema_url.startswith("http") and not schema_url.startswith("/"):
+        schema_url = "/" + schema_url
 
     try:
         schema = schemas_bundle[schema_url]
     except KeyError as e:
-        return ValidationError(kind, filename, "SCHEMA_NOT_FOUND", e,
-                               schema_url=schema_url)
+        return ValidationError(
+            kind, filename, "SCHEMA_NOT_FOUND", e, schema_url=schema_url
+        )
 
     try:
         resolver = jsonschema.RefResolver(
-            schema_url,
-            schema,
-            handlers=get_handlers(schemas_bundle)
+            schema_url, schema, handlers=get_handlers(schemas_bundle)
         )
         validator = jsonschema_validator(schema, resolver=resolver)
         validator.validate(data)
     except jsonschema.ValidationError as e:
-        return ValidationError(kind, filename, "VALIDATION_ERROR", e,
-                               schema_url=schema_url)
+        return ValidationError(
+            kind, filename, "VALIDATION_ERROR", e, schema_url=schema_url
+        )
     except jsonschema.SchemaError as e:
-        return ValidationError(kind, filename, "SCHEMA_ERROR", e,
-                               schema_url=schema_url)
+        return ValidationError(kind, filename, "SCHEMA_ERROR", e, schema_url=schema_url)
     except TypeError as e:
-        return ValidationError(kind, filename, "SCHEMA_TYPE_ERROR", e,
-                               schema_url=schema_url)
+        return ValidationError(
+            kind, filename, "SCHEMA_TYPE_ERROR", e, schema_url=schema_url
+        )
 
     return ValidationOK(kind, filename, schema_url)
 
@@ -219,16 +211,16 @@ def validate_unique_fields(bundle: Bundle):
     graphql = {}
 
     for item in bundle.list_graphql_types():
-        graphql[item.spec['name']] = item.spec['fields']
+        graphql[item.spec["name"]] = item.spec["fields"]
 
     datafiles_map = {}
-    for field in graphql['Query']:
-        if 'datafileSchema' in field:
-            datafiles_map[field['type']] = field['datafileSchema']
+    for field in graphql["Query"]:
+        if "datafileSchema" in field:
+            datafiles_map[field["type"]] = field["datafileSchema"]
 
     unique_map = {}
     for gql_type, gql_fields in graphql.items():
-        if gql_type == 'Query':
+        if gql_type == "Query":
             continue
 
         datafile_schema = datafiles_map.get(gql_type)
@@ -238,13 +230,13 @@ def validate_unique_fields(bundle: Bundle):
 
         unique_map[datafile_schema] = []
         for field in gql_fields:
-            if field.get('isUnique'):
-                unique_map[datafile_schema].append(field['name'])
+            if field.get("isUnique"):
+                unique_map[datafile_schema].append(field["name"])
 
     unique_fields = {}
     for filename, data in data_bundle.items():
-        for field in unique_map.get(data['$schema'], []):
-            key = (data['$schema'], field, data.get(field))
+        for field in unique_map.get(data["$schema"], []):
+            key = (data["$schema"], field, data.get(field))
             unique_fields.setdefault(key, [])
             unique_fields[key].append(filename)
 
@@ -255,22 +247,23 @@ def validate_unique_fields(bundle: Bundle):
                 ValidatedFileKind.UNIQUE,
                 filenames[0],
                 "DUPLICATE_UNIQUE_FIELD",
-                "The field '{}' is repeated: {}".format(key[1], filenames))
+                "The field '{}' is repeated: {}".format(key[1], filenames),
+            )
             results.append(error.dump())
 
     return results
 
 
 def validate_resource(schemas_bundle, filename, resource):
-    content = resource['content']
-    if '$schema' not in content:
-        return ValidationOK(ValidatedFileKind.NONE, filename, '')
+    content = resource["content"]
+    if "$schema" not in content:
+        return ValidationOK(ValidatedFileKind.NONE, filename, "")
 
     try:
         data = yaml.load(content, Loader=yaml.FullLoader)
     except yaml.error.YAMLError:
         logging.warning(f"We can't validate resource with schema {filename}")
-        return ValidationOK(ValidatedFileKind.NONE, filename, '')
+        return ValidationOK(ValidatedFileKind.NONE, filename, "")
 
     return validate_file(schemas_bundle, filename, data)
 
@@ -281,76 +274,47 @@ def validate_ref(schemas_bundle, bundle, filename, data, ptr, ref):
     try:
         ref_data = bundle[ref["$ref"]]
     except KeyError as e:
-        return ValidationError(
-            kind,
-            filename,
-            "FILE_NOT_FOUND",
-            e,
-            ref=ref['$ref']
-        )
+        return ValidationError(kind, filename, "FILE_NOT_FOUND", e, ref=ref["$ref"])
 
     try:
-        schema = schemas_bundle[data['$schema']]
+        schema = schemas_bundle[data["$schema"]]
     except KeyError as e:
-        return ValidationError(
-            kind,
-            filename,
-            "SCHEMA_NOT_FOUND",
-            e,
-            ref=ref['$ref']
-        )
+        return ValidationError(kind, filename, "SCHEMA_NOT_FOUND", e, ref=ref["$ref"])
 
     try:
-        schema_infos = get_schema_info_from_pointer(
-            schema, ptr, schemas_bundle
-        )
+        schema_infos = get_schema_info_from_pointer(schema, ptr, schemas_bundle)
     except KeyError as e:
         return ValidationError(
-            kind,
-            filename,
-            "SCHEMA_DEFINITION_NOT_FOUND",
-            e,
-            ref=ref['$ref'],
-            ptr=ptr
+            kind, filename, "SCHEMA_DEFINITION_NOT_FOUND", e, ref=ref["$ref"], ptr=ptr
         )
 
     errors = []
     for schema_info in schema_infos:
-        expected_schema = schema_info.get('$schemaRef')
+        expected_schema = schema_info.get("$schemaRef")
 
         if expected_schema is not None:
             if isinstance(expected_schema, str):
-                if expected_schema != ref_data['$schema']:
+                if expected_schema != ref_data["$schema"]:
                     errors.append(
                         ValidationError(
                             kind,
                             filename,
                             "INCORRECT_SCHEMA",
-                            IncorrectSchema(
-                                ref_data['$schema'],
-                                expected_schema
-                            ),
-                            ref=ref['$ref']
+                            IncorrectSchema(ref_data["$schema"], expected_schema),
+                            ref=ref["$ref"],
                         )
                     )
                 else:
-                    return ValidationRefOK(
-                        kind, filename, ref['$ref'], data['$schema']
-                    )
+                    return ValidationRefOK(kind, filename, ref["$ref"], data["$schema"])
             else:
                 try:
                     validator = jsonschema_validator(expected_schema)
                     validator.validate(ref_data)
-                    return ValidationRefOK(
-                        kind, filename, ref['$ref'], data['$schema']
-                    )
+                    return ValidationRefOK(kind, filename, ref["$ref"], data["$schema"])
                 except jsonschema.exceptions.ValidationError as e:
                     errors.append(
                         ValidationError(
-                            kind,
-                            filename,
-                            "SCHEMA_REF_VALIDATION_ERROR",
-                            e
+                            kind, filename, "SCHEMA_REF_VALIDATION_ERROR", e
                         )
                     )
 
@@ -359,7 +323,7 @@ def validate_ref(schemas_bundle, bundle, filename, data, ptr, ref):
 
 @lru_cache()
 def fetch_schema(schema_url):
-    if schema_url.startswith('http'):
+    if schema_url.startswith("http"):
         r = requests.get(schema_url)
         r.raise_for_status()
         schema = r.text
@@ -377,7 +341,7 @@ def find_refs(obj, ptr=None, refs=None):
 
     if isinstance(obj, dict):
         # is this a ref?
-        if '$ref' in obj:
+        if "$ref" in obj:
             refs.append((ptr, obj))
         else:
             for key, item in obj.items():
@@ -407,12 +371,12 @@ def get_schema_info_from_pointer(schema, ptr, schemas_bundle) -> list[dict]:
     ptr_chunks = ptr.split("/")[1:]
     for idx, chunk in enumerate(ptr_chunks):
         if chunk.isdigit():
-            info = info['items']
-            if list(info.keys()) == ['$ref']:
+            info = info["items"]
+            if list(info.keys()) == ["$ref"]:
                 # this points to an external schema
                 # we need to load it
-                info = schemas_bundle[info['$ref']]
-            elif list(info.keys()) == ['oneOf']:
+                info = schemas_bundle[info["$ref"]]
+            elif list(info.keys()) == ["oneOf"]:
                 schemas = []
                 # this is a list of type options in an array
                 # we look at all of them and try to find at least one where the
@@ -423,7 +387,7 @@ def get_schema_info_from_pointer(schema, ptr, schemas_bundle) -> list[dict]:
                             get_schema_info_from_pointer(
                                 schemas_bundle[ref["$ref"]],
                                 f"/{'/'.join(ptr_chunks[idx+1:])}",
-                                schemas_bundle
+                                schemas_bundle,
                             )
                         )
                     except KeyError:
@@ -441,14 +405,14 @@ def get_schema_info_from_pointer(schema, ptr, schemas_bundle) -> list[dict]:
                 else:
                     return schemas
         else:
-            info = info['properties'][chunk]
+            info = info["properties"][chunk]
 
     return [info]
 
 
 @click.command()
-@click.option('--only-errors', is_flag=True, help='Print only errors')
-@click.argument('bundle', type=click.File('rb'))
+@click.option("--only-errors", is_flag=True, help="Print only errors")
+@click.argument("bundle", type=click.File("rb"))
 def main(only_errors, bundle):
     bundle = load_bundle(bundle)
 
@@ -475,28 +439,38 @@ def main(only_errors, bundle):
 
     # validate refs
     results_refs = [
-        r.dump() for r in
+        r.dump()
+        for r in
         # validate_ref can return multiple errors, so we flatten the results
         flatten_list(
             [
-                validate_ref(
-                    bundle.schemas, bundle.data, filename, data, ptr, ref
-                )
+                validate_ref(bundle.schemas, bundle.data, filename, data, ptr, ref)
                 for filename, data in bundle.data.items()
                 for ptr, ref in find_refs(data)
             ]
         )
     ]
 
-    results_graphql_schemas = [
-        validate_file(bundle.schemas, "graphql-schemas/schema.yml",
-                      bundle.graphql).dump()] \
-        if type(bundle.graphql) is dict and bundle.graphql['$schema'] else []
+    results_graphql_schemas = (
+        [
+            validate_file(
+                bundle.schemas, "graphql-schemas/schema.yml", bundle.graphql
+            ).dump()
+        ]
+        if type(bundle.graphql) is dict and bundle.graphql["$schema"]
+        else []
+    )
 
     # Calculate errors
-    results = results_schemas + results_files + results_unique_fields + \
-        results_resources + results_refs + results_graphql_schemas
-    errors = list(filter(lambda x: x['result']['status'] == 'ERROR', results))
+    results = (
+        results_schemas
+        + results_files
+        + results_unique_fields
+        + results_resources
+        + results_refs
+        + results_graphql_schemas
+    )
+    errors = list(filter(lambda x: x["result"]["status"] == "ERROR", results))
 
     # Output
     if only_errors:

@@ -15,12 +15,12 @@ from validator.bundle import Bundle
 from validator.utils import parse_anymarkup_file
 from validator.postprocess import postprocess_bundle
 
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
+logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.WARNING)
 
 # regex to get the schema from the resource files.
 # we use multiline as we have a raw string with newlines caracters
 # we don't use pyyaml to parse it as they are jinja templates in most cases
-SCHEMA_RE = re.compile(r'^\$schema: (?P<schema>.+\.ya?ml)$', re.MULTILINE)
+SCHEMA_RE = re.compile(r"^\$schema: (?P<schema>.+\.ya?ml)$", re.MULTILINE)
 
 CHECKSUM_SCHEMA_FIELD = "$file_sha256sum"
 
@@ -43,17 +43,17 @@ def bundle_datafiles(data_dir, thread_pool_size, checksum_field_name=None):
 
 
 def bundle_datafile_spec(spec):
-    work_dir = spec['work_dir']
-    root = spec['root']
-    name = spec['name']
-    if not re.search(r'\.(ya?ml|json)$', name):
+    work_dir = spec["work_dir"]
+    root = spec["root"]
+    name = spec["name"]
+    if not re.search(r"\.(ya?ml|json)$", name):
         return None, None, None
 
     path = os.path.join(root, name)
-    rel_abs_path = path[len(work_dir):]
+    rel_abs_path = path[len(work_dir) :]
 
     logging.info("Processing: {}\n".format(rel_abs_path))
-    content, checksum = parse_anymarkup_file(path, spec['calc_checksum'])
+    content, checksum = parse_anymarkup_file(path, spec["calc_checksum"])
     return rel_abs_path, content, checksum
 
 
@@ -65,31 +65,33 @@ def bundle_resources(resource_dir, thread_pool_size):
 
 
 def bundle_resource_spec(spec):
-    work_dir = spec['work_dir']
-    root = spec['root']
-    name = spec['name']
+    work_dir = spec["work_dir"]
+    root = spec["root"]
+    name = spec["name"]
     path = os.path.join(root, name)
-    rel_abs_path = path[len(work_dir):]
+    rel_abs_path = path[len(work_dir) :]
     logging.info("Resource: {}\n".format(rel_abs_path))
 
-    with open(path, 'rb') as f:
-        content = f.read().decode(errors='replace')
+    with open(path, "rb") as f:
+        content = f.read().decode(errors="replace")
 
     schema = None
     s = SCHEMA_RE.search(content)
     if s:
-        schema = s.group('schema')
+        schema = s.group("schema")
 
     # hash
     m = hashlib.sha256()
     m.update(content.encode())
     sha256sum = m.hexdigest()
 
-    return rel_abs_path, {"path": rel_abs_path,
-                          "content": content,
-                          "$schema": schema,
-                          "sha256sum": sha256sum,
-                          "backrefs": []}
+    return rel_abs_path, {
+        "path": rel_abs_path,
+        "content": content,
+        "$schema": schema,
+        "sha256sum": sha256sum,
+        "backrefs": [],
+    }
 
 
 def init_specs(work_dir, calc_checksum=False):
@@ -118,18 +120,26 @@ def fix_dir(directory):
 
 
 @click.command()
-@click.option('--resolve', is_flag=True, help='Resolve references')
-@click.option('--thread-pool-size', default=10,
-              help='number of threads to run in parallel.')
-@click.argument('schema-dir', type=click.Path(exists=True))
-@click.argument('graphql-schema-file', type=click.Path(exists=True))
-@click.argument('data-dir', type=click.Path(exists=True))
-@click.argument('resource-dir', type=click.Path(exists=True))
-@click.argument('git-commit')
-@click.argument('git-commit-timestamp')
-def main(resolve, thread_pool_size,
-         schema_dir, graphql_schema_file, data_dir, resource_dir,
-         git_commit, git_commit_timestamp):
+@click.option("--resolve", is_flag=True, help="Resolve references")
+@click.option(
+    "--thread-pool-size", default=10, help="number of threads to run in parallel."
+)
+@click.argument("schema-dir", type=click.Path(exists=True))
+@click.argument("graphql-schema-file", type=click.Path(exists=True))
+@click.argument("data-dir", type=click.Path(exists=True))
+@click.argument("resource-dir", type=click.Path(exists=True))
+@click.argument("git-commit")
+@click.argument("git-commit-timestamp")
+def main(
+    resolve,
+    thread_pool_size,
+    schema_dir,
+    graphql_schema_file,
+    data_dir,
+    resource_dir,
+    git_commit,
+    git_commit_timestamp,
+):
     schema_dir = fix_dir(schema_dir)
     data_dir = fix_dir(data_dir)
     resource_dir = fix_dir(resource_dir)
@@ -140,11 +150,9 @@ def main(resolve, thread_pool_size,
         schemas=bundle_datafiles(schema_dir, thread_pool_size),
         graphql=bundle_graphql(graphql_schema_file),
         data=bundle_datafiles(
-            data_dir,
-            thread_pool_size,
-            checksum_field_name=CHECKSUM_SCHEMA_FIELD
+            data_dir, thread_pool_size, checksum_field_name=CHECKSUM_SCHEMA_FIELD
         ),
-        resources=bundle_resources(resource_dir, thread_pool_size)
+        resources=bundle_resources(resource_dir, thread_pool_size),
     )
 
     postprocess_bundle(bundle, checksum_field_name=CHECKSUM_SCHEMA_FIELD)
