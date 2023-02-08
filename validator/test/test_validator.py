@@ -1,4 +1,4 @@
-import validator.validator as validator
+from validator import validator
 from validator.test.fixtures import Fixtures
 
 
