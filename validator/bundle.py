@@ -1,6 +1,14 @@
-from dataclasses import dataclass, field
 import json
-from typing import Any, Optional, Union
+from dataclasses import (
+    dataclass,
+    field,
+)
+from typing import (
+    IO,
+    Any,
+    Optional,
+    Union,
+)
 
 
 class InvalidBundleException(Exception):
@@ -51,20 +59,23 @@ class Bundle:
     _graphql_type_by_name: dict[str, GraphqlType] = field(init=False)
 
     def __post_init__(self):
-        if type(self.graphql) is dict \
-                and (self.graphql['confs'] and self.graphql['$schema']):
+        if isinstance(self.graphql, dict) and (
+            self.graphql["confs"] and self.graphql["$schema"]
+        ):
             self._graphql_type_by_name = {
                 t["name"]: GraphqlType(t["name"], t, self)
-                for t in self.graphql['confs']
+                for t in self.graphql["confs"]
             }
-        elif type(self.graphql) is list:
+        elif isinstance(self.graphql, list):
             self._graphql_type_by_name = {
                 t["name"]: GraphqlType(t["name"], t, self) for t in self.graphql
             }
         else:
-            raise InvalidBundleException('graphql field within bundle must be either '
-                                         '`list` or `dict` with keys `$schema` '
-                                         'and `confs`.')
+            raise InvalidBundleException(
+                "graphql field within bundle must be either "
+                "`list` or `dict` with keys `$schema` "
+                "and `confs`."
+            )
         self._top_level_schemas = {
             f.get("datafileSchema"): self._graphql_type_by_name[f["type"]]
             for f in self._graphql_type_by_name["Query"].spec["fields"]
@@ -94,7 +105,7 @@ class Bundle:
         return datafile_schema in self._top_level_schemas
 
 
-def load_bundle(bundle_source: str) -> Bundle:
+def load_bundle(bundle_source: IO) -> Bundle:
     bundle_data = json.load(bundle_source)
     return Bundle(
         data=bundle_data["data"],

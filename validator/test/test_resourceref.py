@@ -1,8 +1,8 @@
+import pytest
+
 from validator.bundle import Bundle
 from validator.postprocess import postprocess_bundle
 from validator.test.fixtures import Fixtures
-
-import pytest
 
 
 @pytest.fixture(params=["bundle.yml", "bundle_with_graphql_schema_header.yml"])
@@ -35,7 +35,7 @@ def test_simple_refs(bundle: Bundle):
             "jsonpath": "simple_object.simple_nested_ref",
         },
     ]
-    assert expected == bundle.resources.get("/resource-1.yml").get("backrefs")
+    assert expected == bundle.resources.get("/resource-1.yml").get("backrefs")  # type: ignore
 
 
 def test_array_field_to_nested_refs(bundle: Bundle):
@@ -54,7 +54,7 @@ def test_array_field_to_nested_refs(bundle: Bundle):
             "jsonpath": "array_field_to_nested_refs.[1].simple_nested_ref",
         },
     ]
-    assert expected == bundle.resources.get("/resource-3.yml").get("backrefs")
+    assert expected == bundle.resources.get("/resource-3.yml").get("backrefs")  # type: ignore
 
 
 def test_embedded_schemas(bundle):
@@ -100,7 +100,7 @@ def test_one_of_refs(bundle: Bundle):
             "jsonpath": "one_of_ref_array.[2].a_field",
         },
     ]
-    assert expected == bundle.resources.get("/resource-4.yml").get("backrefs")
+    assert expected == bundle.resources.get("/resource-4.yml").get("backrefs")  # type: ignore
 
 
 def test_circular_ref_top_level_type(bundle: Bundle):
@@ -123,4 +123,4 @@ def test_circular_ref_top_level_type(bundle: Bundle):
             "jsonpath": "simple_object.simple_nested_ref",
         },
     ]
-    assert expected == bundle.resources.get("/resource-5.yml").get("backrefs")
+    assert expected == bundle.resources.get("/resource-5.yml").get("backrefs")  # type: ignore
