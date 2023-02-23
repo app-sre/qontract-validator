@@ -156,4 +156,4 @@ def main(
 
     postprocess_bundle(bundle, checksum_field_name=CHECKSUM_SCHEMA_FIELD)
 
-    sys.stdout.write(json.dumps(bundle.to_dict()) + "\n")
+    sys.stdout.write(json.dumps(bundle.to_dict(), separators=(",", ":")) + "\n")
