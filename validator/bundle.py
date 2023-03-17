@@ -17,7 +17,6 @@ class InvalidBundleException(Exception):
 
 @dataclass
 class GraphqlType:
-
     type: str
     spec: dict[str, Any]
     bundle: "Bundle"
@@ -47,7 +46,6 @@ class GraphqlType:
 
 @dataclass
 class Bundle:
-
     graphql: Union[list[dict[str, Any]], dict[str, Any]]
     data: dict[str, dict[str, Any]]
     schemas: dict[str, dict[str, Any]]
