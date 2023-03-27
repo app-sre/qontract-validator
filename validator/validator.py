@@ -372,40 +372,41 @@ def get_schema_info_from_pointer(schema, ptr, schemas_bundle) -> list[dict]:
     for idx, chunk in enumerate(ptr_chunks):
         if chunk.isdigit():
             info = info["items"]
-            if list(info.keys()) == ["$ref"]:
-                # this points to an external schema
-                # we need to load it
-                info = schemas_bundle[info["$ref"]]
-            elif list(info.keys()) == ["oneOf"]:
-                schemas = []
-                # this is a list of type options in an array
-                # we look at all of them and try to find at least one where the
-                # ptr resolves successfully
-                for ref in info["oneOf"]:
-                    try:
-                        schemas.extend(
-                            get_schema_info_from_pointer(
-                                schemas_bundle[ref["$ref"]],
-                                f"/{'/'.join(ptr_chunks[idx+1:])}",
-                                schemas_bundle,
-                            )
-                        )
-                    except KeyError:
-                        pass
-                        # this subtype is not the one we are looking for
-                    try:
-                        schemas.append(schemas_bundle[ref["$schemaRef"]])
-                    except KeyError:
-                        pass
-                if not schemas:
-                    raise KeyError(
-                        f"unable to resolve schema for {ptr} "
-                        f"in oneOf options {info['oneOf']}"
-                    )
-                else:
-                    return schemas
         else:
             info = info["properties"][chunk]
+
+        if list(info.keys()) == ["$ref"]:
+            # this points to an external schema
+            # we need to load it
+            info = schemas_bundle[info["$ref"]]
+        elif list(info.keys()) == ["oneOf"]:
+            schemas = []
+            # this is a list of type options in an array
+            # we look at all of them and try to find at least one where the
+            # ptr resolves successfully
+            for ref in info["oneOf"]:
+                try:
+                    schemas.extend(
+                        get_schema_info_from_pointer(
+                            schemas_bundle[ref["$ref"]],
+                            f"/{'/'.join(ptr_chunks[idx+1:])}",
+                            schemas_bundle,
+                        )
+                    )
+                except KeyError:
+                    pass
+                    # this subtype is not the one we are looking for
+                try:
+                    schemas.append(schemas_bundle[ref["$schemaRef"]])
+                except KeyError:
+                    pass
+            if not schemas:
+                raise KeyError(
+                    f"unable to resolve schema for {ptr} "
+                    f"in oneOf options {info['oneOf']}"
+                )
+            else:
+                return schemas
 
     return [info]
 
