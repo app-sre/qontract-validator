@@ -34,3 +34,9 @@ class TestGetSchemaInfoFromPointer:
 
     def test_one_of_multiple(self):
         self.do_fxt_test("one_of_multiple.yml")
+
+    def test_external_ref_obj(self):
+        self.do_fxt_test("external_ref_obj.yml")
+
+    def test_external_ref_obj_oneof(self):
+        self.do_fxt_test("external_ref_obj_oneof.yml")
