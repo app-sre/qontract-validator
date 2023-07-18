@@ -1,11 +1,14 @@
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.6
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.2
 
 ENV LC_ALL=en_US.utf8
 ENV LANG=en_US.utf8
 
-RUN microdnf install \
-        python3.9 && \
-    microdnf clean all
+RUN microdnf upgrade -y && \
+    microdnf install -y \
+        python3.11 glibc-langpack-en && \
+    microdnf clean all && \
+    update-alternatives --install /usr/bin/python3 python /usr/bin/python3.11 1 && \
+    python3 -m ensurepip
 
 RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools
 
