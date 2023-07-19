@@ -15,7 +15,7 @@ setup(
     install_requires=[
         "Click~=8.1",
         "jsonschema~=3.2",
-        "PyYAML~=5.3",
+        "PyYAML~=6.0.1",
         "requests~=2.24",
         "jsonpath-ng~=1.5",
     ],
