@@ -9,7 +9,7 @@ setup(
     license="BSD",
     author="Red Hat App-SRE Team",
     author_email="sd-app-sre@redhat.com",
-    python_requires=">=3.9",
+    python_requires=">=3.11",
     description="Tools to validate and bundle datafiles for qontract-server",
     packages=find_packages(exclude=("tests",)),
     install_requires=[
@@ -23,7 +23,7 @@ setup(
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.11",
     ],
     entry_points={
         "console_scripts": [
