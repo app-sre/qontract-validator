@@ -56,19 +56,28 @@ def itemgetter(properties, obj):
             return id
 
 
-def ensure_context_uniqueness(df, df_path: str, config: list) -> list[str]:
+def resolve_object_value(object_value: Any, bundle: Bundle) -> Any:
+    if isinstance(object_value, dict) and "$ref" in object_value:
+        return bundle.data.get(object_value["$ref"])
+    return object_value
+
+
+def ensure_context_uniqueness(
+    df, df_path: str, config: list, bundle: Bundle
+) -> list[str]:
     errors = []
     for jsonpath, (identifier, sub_paths) in config:
         ids_in_context = set()
         for object in jsonpath.find(df):
-            object_context_id = itemgetter(identifier, object.value)
+            object_value = resolve_object_value(object.value, bundle)
+            object_context_id = itemgetter(identifier, object_value)
             if object_context_id is None:
                 continue
             if object_context_id in ids_in_context:
                 errors.append(
                     f"context uniqueness error - file: {df_path}, "
-                    "path: {str(object.full_path)}, identifier = {identifier}, "
-                    "value = {object_context_id}"
+                    f"path: {str(object.full_path)}, identifier = {identifier}, "
+                    f"value = {object_context_id}"
                 )
             else:
                 ids_in_context.add(object_context_id)
@@ -78,7 +87,7 @@ def ensure_context_uniqueness(df, df_path: str, config: list) -> list[str]:
                 object.value["__identifier"] = hash_id.hexdigest()
             if sub_paths:
                 errors.extend(
-                    ensure_context_uniqueness(object.value, df_path, sub_paths)
+                    ensure_context_uniqueness(object_value, df_path, sub_paths, bundle)
                 )
     return errors
 
@@ -102,18 +111,18 @@ def postprocess_bundle(
     datafile_schema_resource_ref_jsonpaths: dict[str, list] = {}
     datafile_schema_object_identifier_jsonpaths: dict[str, dict] = {}
     for datafile_schema, schema_object in bundle.schemas.items():
-        if bundle.is_top_level_schema(datafile_schema):
-            graphql_type = bundle.get_graphql_type_for_schema(datafile_schema)
-            paths, object_identifier, _ = process_data_file_schema_object(
-                datafile_schema, schema_object, graphql_type, context
-            )
-            datafile_schema_resource_ref_jsonpaths[datafile_schema] = [
-                parse(p) for p in paths
-            ]
-            datafile_schema_object_identifier_jsonpaths[datafile_schema] = [
-                (parse(path), properties)
-                for path, properties in object_identifier.items()
-            ]
+        graphql_type = bundle.get_graphql_type_for_schema(datafile_schema)
+        if not graphql_type:
+            continue
+        paths, object_identifier, _ = process_data_file_schema_object(
+            datafile_schema, schema_object, graphql_type, context
+        )
+        datafile_schema_resource_ref_jsonpaths[datafile_schema] = [
+            parse(p) for p in paths
+        ]
+        datafile_schema_object_identifier_jsonpaths[datafile_schema] = [
+            (parse(path), properties) for path, properties in object_identifier.items()
+        ]
 
     # use the jsonpaths to find actual resources and backref them to their data files
     errors = []
@@ -124,6 +133,7 @@ def postprocess_bundle(
                 df,
                 df_path,
                 datafile_schema_object_identifier_jsonpaths.get(df_schema, []),
+                bundle,
             )
         )
         for jsonpath in datafile_schema_resource_ref_jsonpaths.get(df_schema, []):
@@ -196,14 +206,25 @@ def _find_resource_field_paths(
     object_identifier_paths = {}
     unique_properties = []
     for property_name, property in schema_object.get("properties", {}).items():
+        property_gql_field = (
+            graphql_type.fields_by_name.get(property_name, {}) if graphql_type else {}
+        )
+        property_graphql_type = (
+            graphql_type.get_referenced_field_type(property_name)
+            if graphql_type
+            else None
+        )
         (
             is_array,
             property_schema_name,
             property_schema_object,
         ) = _resolve_property_schema(property, ctx.bundle.schemas)
-        property_gql_field = (
-            graphql_type.fields_by_name.get(property_name, {}) if graphql_type else {}
-        )
+        if not property_schema_name and property_graphql_type:
+            property_schema_name = property_graphql_type.spec.get("datafile")
+            if property_schema_name:
+                property_schema_object = ctx.bundle.schemas.get(property_schema_name)
+        if not property_schema_object and property_schema_name:
+            property_schema_object = ctx.bundle.schemas.get(property_schema_name)
         if property_gql_field.get("isContextUnique", False) or property_gql_field.get(
             "isUnique", False
         ):
@@ -214,11 +235,6 @@ def _find_resource_field_paths(
             else:
                 resource_paths.append(property_name)
         elif property_schema_object:
-            property_graphql_type = (
-                graphql_type.get_referenced_field_type(property_name)
-                if graphql_type
-                else None
-            )
             interfaceResolverField = (
                 property_graphql_type.get_interface_resolver_field()
                 if property_graphql_type
@@ -323,17 +339,13 @@ def _resolve_property_schema(
     type = property.get("type")
     if type == "array":
         _, datafile_type, schema_object = _resolve_property_schema(
-            property.get("items"), schemas
+            property.get("items", {}), schemas
         )
         return True, datafile_type, schema_object
     elif type == "object":
         return False, None, property
     elif "oneOf" in property:
-        for variant in property.get("oneOf", []):
-            array, schema_ref, schema = _resolve_property_schema(variant, schemas)
-            if schema_ref or schema:
-                return array, schema_ref, schema
-        return False, None, None
+        return False, None, property
     else:
         ref = property.get("$ref")
         schema_ref = property.get("$schemaRef")
