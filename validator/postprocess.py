@@ -1,6 +1,4 @@
 import hashlib
-import logging
-import sys
 from collections.abc import Hashable
 from contextlib import contextmanager
 from typing import (
@@ -58,7 +56,8 @@ def itemgetter(properties, obj):
             return id
 
 
-def ensure_context_uniqueness(df, df_path: str, config: list):
+def ensure_context_uniqueness(df, df_path: str, config: list) -> list[str]:
+    errors = []
     for jsonpath, (identifier, sub_paths) in config:
         ids_in_context = set()
         for object in jsonpath.find(df):
@@ -66,12 +65,11 @@ def ensure_context_uniqueness(df, df_path: str, config: list):
             if object_context_id is None:
                 continue
             if object_context_id in ids_in_context:
-                logging.error(
-                    f"{df_path} - {str(jsonpath)} - "
-                    f"the context identifier {identifier} = {object_context_id} "
-                    "is not unique within this context"
+                errors.append(
+                    f"context uniqueness error - file: {df_path}, "
+                    "path: {str(object.full_path)}, identifier = {identifier}, "
+                    "value = {object_context_id}"
                 )
-                sys.exit(1)
             else:
                 ids_in_context.add(object_context_id)
                 hash_id = hashlib.md5()
@@ -79,11 +77,15 @@ def ensure_context_uniqueness(df, df_path: str, config: list):
                     hash_id.update(str(i).encode())
                 object.value["__identifier"] = hash_id.hexdigest()
             if sub_paths:
-                ensure_context_uniqueness(object.value, df_path, sub_paths)
+                errors.extend(
+                    ensure_context_uniqueness(object.value, df_path, sub_paths)
+                )
+    return errors
 
 
-def postprocess_bundle(bundle: Bundle, checksum_field_name: Optional[str] = None):
-
+def postprocess_bundle(
+    bundle: Bundle, checksum_field_name: Optional[str] = None
+) -> list[str]:
     # build up a list of resource references on a type level
     context = Context(bundle)
 
@@ -114,10 +116,15 @@ def postprocess_bundle(bundle: Bundle, checksum_field_name: Optional[str] = None
             ]
 
     # use the jsonpaths to find actual resources and backref them to their data files
+    errors = []
     for df_path, df in bundle.data.items():
         df_schema = df["$schema"]
-        ensure_context_uniqueness(
-            df, df_path, datafile_schema_object_identifier_jsonpaths.get(df_schema, [])
+        errors.extend(
+            ensure_context_uniqueness(
+                df,
+                df_path,
+                datafile_schema_object_identifier_jsonpaths.get(df_schema, []),
+            )
         )
         for jsonpath in datafile_schema_resource_ref_jsonpaths.get(df_schema, []):
             for resource_usage in jsonpath.find(df):
@@ -132,8 +139,8 @@ def postprocess_bundle(bundle: Bundle, checksum_field_name: Optional[str] = None
                         }
                     )
                 else:
-                    logging.error(f"resource file {resource_usage.value} not found")
-                    sys.exit(1)
+                    errors.append(f"resource file {resource_usage.value} not found")
+    return errors
 
 
 def process_data_file_schema_object(

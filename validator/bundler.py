@@ -154,6 +154,10 @@ def main(
         resources=bundle_resources(resource_dir, thread_pool_size),
     )
 
-    postprocess_bundle(bundle, checksum_field_name=CHECKSUM_SCHEMA_FIELD)
+    errors = postprocess_bundle(bundle, checksum_field_name=CHECKSUM_SCHEMA_FIELD)
+    if errors:
+        for e in errors:
+            logging.error(e)
+        sys.exit(1)
 
     sys.stdout.write(json.dumps(bundle.to_dict(), separators=(",", ":")) + "\n")
