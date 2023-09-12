@@ -53,7 +53,8 @@ class Bundle:
     git_commit: str
     git_commit_timestamp: str
 
-    _top_level_schemas: dict[str, GraphqlType] = field(init=False)
+    _schema_to_graphql_type: dict[str, GraphqlType] = field(init=False)
+    _top_level_schemas: set[str] = field(init=False)
     _graphql_type_by_name: dict[str, GraphqlType] = field(init=False)
 
     def __post_init__(self):
@@ -74,8 +75,22 @@ class Bundle:
                 "`list` or `dict` with keys `$schema` "
                 "and `confs`."
             )
+        # use the datafile field on the graphql type to map to the schema
+        self._schema_to_graphql_type = {
+            f.get("datafile"): self._graphql_type_by_name[f["name"]]
+            for f in self.graphql.get("confs", [])
+            if f.get("datafile")
+        }
+        # also use the datafileSchema field within the Query section
+        self._schema_to_graphql_type.update(
+            {
+                f.get("datafileSchema"): self._graphql_type_by_name[f["type"]]
+                for f in self._graphql_type_by_name["Query"].spec["fields"]
+                if f.get("datafileSchema")
+            }
+        )
         self._top_level_schemas = {
-            f.get("datafileSchema"): self._graphql_type_by_name[f["type"]]
+            f.get("datafileSchema")
             for f in self._graphql_type_by_name["Query"].spec["fields"]
             if f.get("datafileSchema")
         }
@@ -91,7 +106,7 @@ class Bundle:
         }
 
     def get_graphql_type_for_schema(self, schema: str) -> Optional[GraphqlType]:
-        return self._top_level_schemas.get(schema)
+        return self._schema_to_graphql_type.get(schema)
 
     def list_graphql_types(self) -> list[GraphqlType]:
         return list(self._graphql_type_by_name.values())

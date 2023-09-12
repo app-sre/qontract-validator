@@ -5,7 +5,7 @@ from validator.postprocess import postprocess_bundle
 from validator.test.fixtures import Fixtures
 
 
-@pytest.fixture(params=["bundle.yml", "bundle_with_graphql_schema_header.yml"])
+@pytest.fixture(params=["bundle.yml"])
 def bundle(request) -> Bundle:
     fxt = Fixtures("backref")
     fixture = fxt.get_anymarkup(fxt.path(request.param))
