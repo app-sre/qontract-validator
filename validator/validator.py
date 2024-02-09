@@ -466,6 +466,7 @@ def validate_bundle(bundle: Bundle) -> list[dict]:
         + results_graphql_schemas
     )
 
+
 @click.command()
 @click.option("--only-errors", is_flag=True, help="Print only errors")
 @click.argument("bundlefile", type=click.File("rb"))
