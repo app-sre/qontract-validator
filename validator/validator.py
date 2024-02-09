@@ -411,12 +411,7 @@ def get_schema_info_from_pointer(schema, ptr, schemas_bundle) -> list[dict]:
     return [info]
 
 
-@click.command()
-@click.option("--only-errors", is_flag=True, help="Print only errors")
-@click.argument("bundlefile", type=click.File("rb"))
-def main(only_errors, bundlefile: IO):
-    bundle = load_bundle(bundlefile)
-
+def validate_bundle(bundle: Bundle) -> list[dict]:
     # Validate schemas
     results_schemas = [
         validate_schema(bundle.schemas, filename, schema_data).dump()
@@ -462,8 +457,7 @@ def main(only_errors, bundlefile: IO):
         else []
     )
 
-    # Calculate errors
-    results = (
+    return (
         results_schemas
         + results_files
         + results_unique_fields
@@ -471,6 +465,16 @@ def main(only_errors, bundlefile: IO):
         + results_refs
         + results_graphql_schemas
     )
+
+@click.command()
+@click.option("--only-errors", is_flag=True, help="Print only errors")
+@click.argument("bundlefile", type=click.File("rb"))
+def main(only_errors, bundlefile: IO):
+    bundle = load_bundle(bundlefile)
+
+    results = validate_bundle(bundle)
+
+    # Calculate errors
     errors = list(filter(lambda x: x["result"]["status"] == "ERROR", results))
 
     # Output
