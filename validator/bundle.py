@@ -7,7 +7,6 @@ from typing import (
     IO,
     Any,
     Optional,
-    Union,
 )
 
 
@@ -31,7 +30,7 @@ class GraphqlType:
         else:
             return None
 
-    def get_interface_resolver_field(self) -> Optional[str]:
+    def get_interface_resolver_field(self) -> str | None:
         return self.spec.get("interfaceResolve", {}).get("field")
 
     def get_sub_type(self, discriminator: str) -> Optional["GraphqlType"]:
@@ -46,7 +45,7 @@ class GraphqlType:
 
 @dataclass
 class Bundle:
-    graphql: Union[list[dict[str, Any]], dict[str, Any]]
+    graphql: list[dict[str, Any]] | dict[str, Any]
     data: dict[str, dict[str, Any]]
     schemas: dict[str, dict[str, Any]]
     resources: dict[str, dict[str, Any]]
@@ -82,13 +81,11 @@ class Bundle:
             if f.get("datafile")
         }
         # also use the datafileSchema field within the Query section
-        self._schema_to_graphql_type.update(
-            {
-                f.get("datafileSchema"): self._graphql_type_by_name[f["type"]]
-                for f in self._graphql_type_by_name["Query"].spec["fields"]
-                if f.get("datafileSchema")
-            }
-        )
+        self._schema_to_graphql_type.update({
+            f.get("datafileSchema"): self._graphql_type_by_name[f["type"]]
+            for f in self._graphql_type_by_name["Query"].spec["fields"]
+            if f.get("datafileSchema")
+        })
         self._top_level_schemas = {
             f.get("datafileSchema")
             for f in self._graphql_type_by_name["Query"].spec["fields"]
@@ -105,13 +102,13 @@ class Bundle:
             "resources": self.resources,
         }
 
-    def get_graphql_type_for_schema(self, schema: str) -> Optional[GraphqlType]:
+    def get_graphql_type_for_schema(self, schema: str) -> GraphqlType | None:
         return self._schema_to_graphql_type.get(schema)
 
     def list_graphql_types(self) -> list[GraphqlType]:
         return list(self._graphql_type_by_name.values())
 
-    def get_graphql_type_by_name(self, type: str) -> Optional[GraphqlType]:
+    def get_graphql_type_by_name(self, type: str) -> GraphqlType | None:
         return self._graphql_type_by_name.get(type)
 
     def is_top_level_schema(self, datafile_schema: str) -> bool:

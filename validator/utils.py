@@ -17,12 +17,12 @@ def parse_anymarkup_file(filename, calc_checksum=False):
     file_ext = os.path.splitext(filename)[1][len(os.path.extsep) :]
 
     res = {}
-    if file_ext in ["yaml", "yml"]:
-        with open(filename, "r", encoding="utf-8") as fh:
+    if file_ext in {"yaml", "yml"}:
+        with open(filename, encoding="utf-8") as fh:
             content = fh.read()
             res = _load_yaml(content)
-    elif file_ext in ["json"]:
-        with open(filename, "r", encoding="utf-8") as fh:
+    elif file_ext in {"json"}:
+        with open(filename, encoding="utf-8") as fh:
             content = fh.read()
             res = _load_json(content)
     else:
