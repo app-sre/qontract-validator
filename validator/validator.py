@@ -321,7 +321,7 @@ def validate_ref(schemas_bundle, bundle, filename, data, ptr, ref):
     return errors
 
 
-@lru_cache()
+@lru_cache
 def fetch_schema(schema_url):
     if schema_url.startswith("http"):
         r = requests.get(schema_url)
@@ -389,7 +389,7 @@ def get_schema_info_from_pointer(schema, ptr, schemas_bundle) -> list[dict]:
                     schemas.extend(
                         get_schema_info_from_pointer(
                             schemas_bundle[ref["$ref"]],
-                            f"/{'/'.join(ptr_chunks[idx+1:])}",
+                            f"/{'/'.join(ptr_chunks[idx + 1 :])}",
                             schemas_bundle,
                         )
                     )
@@ -438,13 +438,11 @@ def validate_bundle(bundle: Bundle) -> list[dict]:
         r.dump()
         for r in
         # validate_ref can return multiple errors, so we flatten the results
-        flatten_list(
-            [
-                validate_ref(bundle.schemas, bundle.data, filename, data, ptr, ref)
-                for filename, data in bundle.data.items()
-                for ptr, ref in find_refs(data)
-            ]
-        )
+        flatten_list([
+            validate_ref(bundle.schemas, bundle.data, filename, data, ptr, ref)
+            for filename, data in bundle.data.items()
+            for ptr, ref in find_refs(data)
+        ])
     ]
 
     results_graphql_schemas = (

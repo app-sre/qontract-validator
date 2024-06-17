@@ -1,3 +1,2 @@
--r requirements-format.txt
 -r requirements-test.txt
 -r requirements-type.txt

@@ -1,11 +1,7 @@
 import hashlib
 from collections.abc import Hashable
 from contextlib import contextmanager
-from typing import (
-    Any,
-    Optional,
-    Tuple,
-)
+from typing import Any
 
 from jsonpath_ng.ext import parse
 
@@ -93,7 +89,7 @@ def ensure_context_uniqueness(
 
 
 def postprocess_bundle(
-    bundle: Bundle, checksum_field_name: Optional[str] = None
+    bundle: Bundle, checksum_field_name: str | None = None
 ) -> list[str]:
     # build up a list of resource references on a type level
     context = Context(bundle)
@@ -140,14 +136,12 @@ def postprocess_bundle(
             for resource_usage in jsonpath.find(df):
                 resource = bundle.resources.get(resource_usage.value)
                 if resource:
-                    resource["backrefs"].append(
-                        {
-                            "path": df_path,
-                            "datafileSchema": df_schema,
-                            "type": bundle.get_graphql_type_for_schema(df_schema).type,
-                            "jsonpath": str(resource_usage.full_path),
-                        }
-                    )
+                    resource["backrefs"].append({
+                        "path": df_path,
+                        "datafileSchema": df_schema,
+                        "type": bundle.get_graphql_type_for_schema(df_schema).type,
+                        "jsonpath": str(resource_usage.full_path),
+                    })
                 else:
                     errors.append(f"resource file {resource_usage.value} not found")
     return errors
@@ -244,7 +238,7 @@ def _find_resource_field_paths(
                 for sub_schema_object in property_schema_object.get("oneOf"):
                     if "properties" not in sub_schema_object:
                         # sub type is a ref - resolve it
-                        _, _, sub_schema_object = _resolve_property_schema(
+                        _, _, sub_schema_object = _resolve_property_schema(  # noqa: PLW2901
                             sub_schema_object, ctx.bundle.schemas
                         )
                     if not sub_schema_object:
@@ -286,52 +280,49 @@ def _find_resource_field_paths(
                             property_schema_object["properties"]["__identifier"] = {
                                 "type": "string"
                             }
-            else:
-                if not ctx.bundle.is_top_level_schema(property_schema_name):
-                    with ctx.step_into(datafile_schema):
-                        property_graphql_type = (
-                            graphql_type.get_referenced_field_type(property_name)
-                            if graphql_type
-                            else None
-                        )
-                        if property_schema_name:
-                            resolver_func = process_data_file_schema_object
-                        else:
-                            resolver_func = _find_resource_field_paths
-                        (
-                            property_resource_paths,
-                            property_object_identifiers,
+            elif not ctx.bundle.is_top_level_schema(property_schema_name):
+                with ctx.step_into(datafile_schema):
+                    property_graphql_type = (
+                        graphql_type.get_referenced_field_type(property_name)
+                        if graphql_type
+                        else None
+                    )
+                    if property_schema_name:
+                        resolver_func = process_data_file_schema_object
+                    else:
+                        resolver_func = _find_resource_field_paths
+                    (
+                        property_resource_paths,
+                        property_object_identifiers,
+                        property_unique_properties,
+                    ) = resolver_func(
+                        property_schema_name,
+                        property_schema_object,
+                        property_graphql_type,
+                        ctx,
+                    )
+                    property_name_jsonpath = property_name
+                    if is_array:
+                        property_name_jsonpath = f"{property_name}[*]"
+                    for p in property_resource_paths:
+                        resource_paths.append(f"{property_name_jsonpath}.{p}")
+                    if property_unique_properties:
+                        object_identifier_paths[property_name_jsonpath] = (
                             property_unique_properties,
-                        ) = resolver_func(
-                            property_schema_name,
-                            property_schema_object,
-                            property_graphql_type,
-                            ctx,
+                            [
+                                (parse(path), properties)
+                                for path, properties in property_object_identifiers.items()
+                            ],
                         )
-                        property_name_jsonpath = property_name
-                        if is_array:
-                            property_name_jsonpath = f"{property_name}[*]"
-                        for p in property_resource_paths:
-                            resource_paths.append(f"{property_name_jsonpath}.{p}")
-                        if property_unique_properties:
-                            object_identifier_paths[property_name_jsonpath] = (
-                                property_unique_properties,
-                                [
-                                    (parse(path), properties)
-                                    for path, properties in property_object_identifiers.items()
-                                ],
-                            )
-                            property_schema_object["properties"]["__identifier"] = {
-                                "type": "string"
-                            }
+                        property_schema_object["properties"]["__identifier"] = {
+                            "type": "string"
+                        }
     if unique_properties:
         schema_object["properties"]["__identifier"] = {"type": "string"}
     return resource_paths, object_identifier_paths, unique_properties
 
 
-def _resolve_property_schema(
-    property, schemas
-) -> Tuple[bool, Optional[str], Optional[dict]]:
+def _resolve_property_schema(property, schemas) -> tuple[bool, str | None, dict | None]:
     """
     this is a helper function to get the schema definition of a property, transparently
     dealing with refs and schema refs.
