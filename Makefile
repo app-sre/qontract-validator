@@ -12,7 +12,7 @@ else
 endif
 
 build: clean
-	@docker build -t $(IMAGE_NAME):latest -f dockerfiles/Dockerfile .
+	@docker build --target prod -t $(IMAGE_NAME):latest -f Dockerfile .
 	@docker tag $(IMAGE_NAME):latest $(IMAGE_NAME):$(IMAGE_TAG)
 
 push:
@@ -20,7 +20,7 @@ push:
 	@docker --config=$(DOCKER_CONF) push $(IMAGE_NAME):$(IMAGE_TAG)
 
 build-test: clean
-	@docker build -t $(IMAGE_TEST) -f dockerfiles/Dockerfile.test .
+	@docker build --target test -t $(IMAGE_TEST) -f Dockerfile .
 
 test: build-test
 	@docker run --rm $(IMAGE_TEST)
