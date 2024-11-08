@@ -1,0 +1,53 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  annotations:
+    build.appstudio.openshift.io/repo: https://github.com/app-sre/qontract-validator?rev={{revision}}
+    build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
+    build.appstudio.redhat.com/target_branch: '{{target_branch}}'
+    pipelinesascode.tekton.dev/max-keep-runs: "10"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch == "master"
+  labels:
+    appstudio.openshift.io/application: qontract-validator-master
+    appstudio.openshift.io/component: qontract-validator-master
+    pipelines.appstudio.openshift.io/type: build
+  name: qontract-validator-master-on-pull-request
+  namespace: app-sre-tenant
+spec:
+  params:
+  - name: git-url
+    value: '{{source_url}}'
+  - name: revision
+    value: '{{revision}}'
+  - name: output-image
+    value: quay.io/redhat-user-workloads/app-sre-tenant/qontract-validator-master/qontract-validator-master:on-pr-{{revision}}
+  - name: image-expires-after
+    value: 5d
+  - name: dockerfile
+    value: Dockerfile
+  - name: path-context
+    value: .
+  - target-stage:
+    value: test
+  pipelineRef:
+    resolver: git
+    params:
+    - name: url
+      value: https://github.com/app-sre/shared-pipelines
+    - name: revision
+      value: main
+    - name: pathInRepo
+      value: pipelines/multi-arch-build-pipeline.yaml
+  workspaces:
+  - name: workspace
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+  - name: git-auth
+    secret:
+      secretName: '{{ git_auth_secret }}'
