@@ -1,5 +1,5 @@
 # base
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.2 AS base
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5 AS base
 ENV LC_ALL=en_US.utf8
 ENV LANG=en_US.utf8
 RUN microdnf upgrade -y && \
