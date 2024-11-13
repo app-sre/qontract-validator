@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 from validator.utils import parse_anymarkup_file
 
@@ -8,12 +8,10 @@ class Fixtures:
         self.base_path = base_path
 
     def path(self, fixture):
-        return os.path.join(
-            os.path.dirname(__file__), "fixtures", self.base_path, fixture
-        )
+        return Path(__file__).parent / "fixtures" / self.base_path / fixture
 
     def get(self, fixture):
-        with open(self.path(fixture), encoding="utf-8") as f:
+        with Path.open(self.path(fixture), encoding="utf-8") as f:
             return f.read().strip()
 
     def get_anymarkup(self, fixture):

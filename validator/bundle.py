@@ -10,7 +10,7 @@ from typing import (
 )
 
 
-class InvalidBundleException(Exception):
+class InvalidBundleError(Exception):
     pass
 
 
@@ -20,15 +20,14 @@ class GraphqlType:
     spec: dict[str, Any]
     bundle: "Bundle"
 
-    def __post_init__(self):
+    def __post_init__(self):  # noqa: D105
         self.fields_by_name = {f.get("name"): f for f in self.spec.get("fields")}
 
     def get_referenced_field_type(self, name: str) -> Optional["GraphqlType"]:
         field = self.fields_by_name.get(name)
         if field:
             return self.bundle.get_graphql_type_by_name(field.get("type"))
-        else:
-            return None
+        return None
 
     def get_interface_resolver_field(self) -> str | None:
         return self.spec.get("interfaceResolve", {}).get("field")
@@ -39,8 +38,7 @@ class GraphqlType:
         )
         if sub_type_name:
             return self.bundle.get_graphql_type_by_name(sub_type_name)
-        else:
-            return None
+        return None
 
 
 @dataclass
@@ -56,7 +54,7 @@ class Bundle:
     _top_level_schemas: set[str] = field(init=False)
     _graphql_type_by_name: dict[str, GraphqlType] = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self):  # noqa: D105
         if isinstance(self.graphql, dict) and (
             self.graphql["confs"] and self.graphql["$schema"]
         ):
@@ -69,11 +67,11 @@ class Bundle:
                 t["name"]: GraphqlType(t["name"], t, self) for t in self.graphql
             }
         else:
-            raise InvalidBundleException(
+            msg = (
                 "graphql field within bundle must be either "
-                "`list` or `dict` with keys `$schema` "
-                "and `confs`."
+                "`list` or `dict` with keys `$schema` and `confs`"
             )
+            raise InvalidBundleError(msg)
         # use the datafile field on the graphql type to map to the schema
         self._schema_to_graphql_type = {
             f.get("datafile"): self._graphql_type_by_name[f["name"]]
@@ -108,8 +106,8 @@ class Bundle:
     def list_graphql_types(self) -> list[GraphqlType]:
         return list(self._graphql_type_by_name.values())
 
-    def get_graphql_type_by_name(self, type: str) -> GraphqlType | None:
-        return self._graphql_type_by_name.get(type)
+    def get_graphql_type_by_name(self, prop_type: str) -> GraphqlType | None:
+        return self._graphql_type_by_name.get(prop_type)
 
     def is_top_level_schema(self, datafile_schema: str) -> bool:
         return datafile_schema in self._top_level_schemas

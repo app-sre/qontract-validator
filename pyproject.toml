@@ -58,18 +58,7 @@ fix = true
 
 [tool.ruff.lint]
 preview = true
-extend-select = [
-    # flake8 default rules
-    "E1", # preview rule
-    "E2", # preview rule
-    "W",
-    # isort
-    "I",
-    # pylint
-    "PL",
-    # pyupgrade
-    "UP",
-]
+select = ["ALL"]
 ignore = [
     "ANN",     # TODO: Remove this once we have type annotations
     "CPY",     # Missing copyright header

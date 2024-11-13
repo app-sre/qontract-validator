@@ -35,7 +35,9 @@ def test_simple_refs(bundle: Bundle):
             "jsonpath": "simple_object.simple_nested_ref",
         },
     ]
-    assert expected == bundle.resources.get("/resource-1.yml").get("backrefs")  # type: ignore
+    resource = bundle.resources.get("/resource-1.yml")
+    assert resource is not None
+    assert expected == resource.get("backrefs")
 
 
 def test_array_field_to_nested_refs(bundle: Bundle):
@@ -54,13 +56,13 @@ def test_array_field_to_nested_refs(bundle: Bundle):
             "jsonpath": "array_field_to_nested_refs.[1].simple_nested_ref",
         },
     ]
-    assert expected == bundle.resources.get("/resource-3.yml").get("backrefs")  # type: ignore
+    resource = bundle.resources.get("/resource-3.yml")
+    assert resource is not None
+    assert expected == resource.get("backrefs")
 
 
 def test_embedded_schemas(bundle):
-    """
-    shows that resourceref detection works for embedded types ($ref)
-    """
+    """shows that resourceref detection works for embedded types ($ref)"""
     postprocess_bundle(bundle)
 
     expected = [
@@ -81,10 +83,7 @@ def test_embedded_schemas(bundle):
 
 
 def test_one_of_refs(bundle: Bundle):
-    """
-    this test shows that refs can be found in subtypes while the same
-    field name can be a ref in one subtype but not in another
-    """
+    """this test shows that refs can be found in subtypes while the same field name can be a ref in one subtype but not in another"""
     postprocess_bundle(bundle)
     expected = [
         {
@@ -100,14 +99,13 @@ def test_one_of_refs(bundle: Bundle):
             "jsonpath": "one_of_ref_array.[2].a_field",
         },
     ]
-    assert expected == bundle.resources.get("/resource-4.yml").get("backrefs")  # type: ignore
+    resource = bundle.resources.get("/resource-4.yml")
+    assert resource is not None
+    assert expected == resource.get("backrefs")
 
 
 def test_circular_ref_top_level_type(bundle: Bundle):
-    """
-    shows that reference loops are dealth with an reference detection
-    stops looking in other top level types
-    """
+    """shows that reference loops are dealth with an reference detection stops looking in other top level types"""
     postprocess_bundle(bundle)
     expected = [
         {
@@ -123,4 +121,6 @@ def test_circular_ref_top_level_type(bundle: Bundle):
             "jsonpath": "simple_object.simple_nested_ref",
         },
     ]
-    assert expected == bundle.resources.get("/resource-5.yml").get("backrefs")  # type: ignore
+    resource = bundle.resources.get("/resource-5.yml")
+    assert resource is not None
+    assert expected == resource.get("backrefs")

@@ -1,3 +1,4 @@
+import contextlib
 import json
 import logging
 import sys
@@ -9,7 +10,7 @@ import click
 import jsonschema
 import requests
 import yaml
-from jsonschema import Draft6Validator as jsonschema_validator
+from jsonschema import Draft6Validator
 
 from validator.bundle import (
     Bundle,
@@ -19,13 +20,13 @@ from validator.bundle import (
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.WARNING)
 
 
-class IncorrectSchema(Exception):
+class IncorrectSchemaError(Exception):
     def __init__(self, got, expecting):
         message = f"incorrect schema: got `{got}`, expecting `{expecting}`"
         super(Exception, self).__init__(message)
 
 
-class MissingSchemaFile(Exception):
+class MissingSchemaFileError(Exception):
     def __init__(self, path):
         self.path = path
         message = f"schema not found: `{path}`"
@@ -118,23 +119,13 @@ class ValidationError:
 
 
 def get_handlers(schemas_bundle):
-    """
-    Generates a dictionary which will be used as an the `handlers` argument for
-    jsonschema.RefResolver.
-
-    `handlers` is a mapping from URI schemes to functions that should be used
-    to retrieve them.
-
-    In this case we are overloading the empty string scheme, which will be the
-    scheme detected for absolute or relative file paths.
-    """
     return {"": lambda x: schemas_bundle[x]}
 
 
 def validate_schema(schemas_bundle, filename, schema_data):
     kind = ValidatedFileKind.SCHEMA
 
-    logging.info(f"validating schema: {filename}")
+    logging.info("validating schema: %s", filename)
 
     try:
         meta_schema_url = schema_data["$schema"]
@@ -151,8 +142,8 @@ def validate_schema(schemas_bundle, filename, schema_data):
     )
 
     try:
-        jsonschema_validator.check_schema(schema_data)
-        validator = jsonschema_validator(meta_schema, resolver=resolver)
+        Draft6Validator.check_schema(schema_data)
+        validator = Draft6Validator(meta_schema, resolver=resolver)
         validator.validate(schema_data)
     except jsonschema.ValidationError as e:
         return ValidationError(
@@ -169,7 +160,7 @@ def validate_schema(schemas_bundle, filename, schema_data):
 def validate_file(schemas_bundle, filename, data):
     kind = ValidatedFileKind.DATA_FILE
 
-    logging.info(f"validating file: {filename}")
+    logging.info("validating file: %s", filename)
 
     try:
         schema_url = data["$schema"]
@@ -190,7 +181,7 @@ def validate_file(schemas_bundle, filename, data):
         resolver = jsonschema.RefResolver(
             schema_url, schema, handlers=get_handlers(schemas_bundle)
         )
-        validator = jsonschema_validator(schema, resolver=resolver)
+        validator = Draft6Validator(schema, resolver=resolver)
         validator.validate(data)
     except jsonschema.ValidationError as e:
         return ValidationError(
@@ -206,7 +197,7 @@ def validate_file(schemas_bundle, filename, data):
     return ValidationOK(kind, filename, schema_url)
 
 
-def validate_unique_fields(bundle: Bundle):
+def validate_unique_fields(bundle: Bundle):  # noqa: C901
     data_bundle = bundle.data
     graphql = {}
 
@@ -260,9 +251,9 @@ def validate_resource(schemas_bundle, filename, resource):
         return ValidationOK(ValidatedFileKind.NONE, filename, "")
 
     try:
-        data = yaml.load(content, Loader=yaml.FullLoader)
+        data = yaml.safe_load(content)
     except yaml.error.YAMLError:
-        logging.warning(f"We can't validate resource with schema {filename}")
+        logging.warning("We can't validate resource with schema %s", filename)
         return ValidationOK(ValidatedFileKind.NONE, filename, "")
 
     return validate_file(schemas_bundle, filename, data)
@@ -300,7 +291,7 @@ def validate_ref(schemas_bundle, bundle, filename, data, ptr, ref):
                             kind,
                             filename,
                             "INCORRECT_SCHEMA",
-                            IncorrectSchema(ref_data["$schema"], expected_schema),
+                            IncorrectSchemaError(ref_data["$schema"], expected_schema),
                             ref=ref["$ref"],
                         )
                     )
@@ -308,7 +299,7 @@ def validate_ref(schemas_bundle, bundle, filename, data, ptr, ref):
                     return ValidationRefOK(kind, filename, ref["$ref"], data["$schema"])
             else:
                 try:
-                    validator = jsonschema_validator(expected_schema)
+                    validator = Draft6Validator(expected_schema)
                     validator.validate(ref_data)
                     return ValidationRefOK(kind, filename, ref["$ref"], data["$schema"])
                 except jsonschema.exceptions.ValidationError as e:
@@ -324,12 +315,11 @@ def validate_ref(schemas_bundle, bundle, filename, data, ptr, ref):
 @lru_cache
 def fetch_schema(schema_url):
     if schema_url.startswith("http"):
-        r = requests.get(schema_url)
+        r = requests.get(schema_url, timeout=10)
         r.raise_for_status()
         schema = r.text
         return json.loads(schema)
-    else:
-        raise MissingSchemaFile(schema_url)
+    raise MissingSchemaFileError(schema_url)
 
 
 def find_refs(obj, ptr=None, refs=None):
@@ -370,10 +360,7 @@ def get_schema_info_from_pointer(schema, ptr, schemas_bundle) -> list[dict]:
 
     ptr_chunks = ptr.split("/")[1:]
     for idx, chunk in enumerate(ptr_chunks):
-        if chunk.isdigit():
-            info = info["items"]
-        else:
-            info = info["properties"][chunk]
+        info = info["items"] if chunk.isdigit() else info["properties"][chunk]
 
         if list(info.keys()) == ["$ref"]:
             # this points to an external schema
@@ -385,7 +372,7 @@ def get_schema_info_from_pointer(schema, ptr, schemas_bundle) -> list[dict]:
             # we look at all of them and try to find at least one where the
             # ptr resolves successfully
             for ref in info["oneOf"]:
-                try:
+                with contextlib.suppress(KeyError):
                     schemas.extend(
                         get_schema_info_from_pointer(
                             schemas_bundle[ref["$ref"]],
@@ -393,20 +380,16 @@ def get_schema_info_from_pointer(schema, ptr, schemas_bundle) -> list[dict]:
                             schemas_bundle,
                         )
                     )
-                except KeyError:
-                    pass
                     # this subtype is not the one we are looking for
-                try:
+                with contextlib.suppress(KeyError):
                     schemas.append(schemas_bundle[ref["$schemaRef"]])
-                except KeyError:
-                    pass
             if not schemas:
-                raise KeyError(
+                msg = (
                     f"unable to resolve schema for {ptr} "
                     f"in oneOf options {info['oneOf']}"
                 )
-            else:
-                return schemas
+                raise KeyError(msg)
+            return schemas
 
     return [info]
 

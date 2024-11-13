@@ -1,5 +1,3 @@
-#!/usr/bin/env python2
-
 import hashlib
 import json
 import logging
@@ -7,6 +5,7 @@ import os
 import re
 import sys
 from multiprocessing.dummy import Pool as ThreadPool
+from pathlib import Path
 
 import click
 
@@ -25,7 +24,7 @@ CHECKSUM_SCHEMA_FIELD = "$file_sha256sum"
 
 
 def bundle_datafiles(data_dir, thread_pool_size, checksum_field_name=None):
-    specs = init_specs(data_dir, checksum_field_name is not None)
+    specs = init_specs(data_dir, checksum_field_name)
     pool = ThreadPool(thread_pool_size)
     results = pool.map(bundle_datafile_spec, specs)
 
@@ -48,10 +47,10 @@ def bundle_datafile_spec(spec):
     if not re.search(r"\.(ya?ml|json)$", name):
         return None, None, None
 
-    path = os.path.join(root, name)
-    rel_abs_path = path[len(work_dir) :]
+    path = Path(root) / name
+    rel_abs_path = path.as_posix()[len(work_dir) :]
 
-    logging.info(f"Processing: {rel_abs_path}\n")
+    logging.info("Processing: %s\n", rel_abs_path)
     content, checksum = parse_anymarkup_file(path, spec["calc_checksum"])
     return rel_abs_path, content, checksum
 
@@ -67,11 +66,12 @@ def bundle_resource_spec(spec):
     work_dir = spec["work_dir"]
     root = spec["root"]
     name = spec["name"]
-    path = os.path.join(root, name)
-    rel_abs_path = path[len(work_dir) :]
-    logging.info(f"Resource: {rel_abs_path}\n")
 
-    with open(path, "rb") as f:
+    path = Path(root) / name
+    rel_abs_path = path.as_posix()[len(work_dir) :]
+
+    logging.info("Resource: %s\n", rel_abs_path)
+    with Path.open(path, "rb") as f:
         content = f.read().decode(errors="replace")
 
     schema = None
@@ -93,7 +93,9 @@ def bundle_resource_spec(spec):
     }
 
 
-def init_specs(work_dir, calc_checksum=False):
+def init_specs(work_dir, calc_checksum=None):
+    if calc_checksum is None:
+        calc_checksum = False
     specs = []
     for root, _, files in os.walk(work_dir, topdown=False):
         for name in files:
@@ -119,7 +121,6 @@ def fix_dir(directory):
 
 
 @click.command()
-@click.option("--resolve", is_flag=True, help="Resolve references")
 @click.option(
     "--thread-pool-size", default=10, help="number of threads to run in parallel."
 )
@@ -130,7 +131,6 @@ def fix_dir(directory):
 @click.argument("git-commit")
 @click.argument("git-commit-timestamp")
 def main(
-    resolve,
     thread_pool_size,
     schema_dir,
     graphql_schema_file,

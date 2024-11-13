@@ -14,7 +14,7 @@ RESOURCE_REF = "/common-1.json#/definitions/resourceref"
 CROSS_REF = "/common-1.json#/definitions/crossref"
 
 
-class SchemaTraversalLoopException(Exception):
+class SchemaTraversalLoopError(Exception):
     pass
 
 
@@ -38,18 +38,15 @@ def itemgetter(properties, obj):
     def to_hashable(field):
         if isinstance(field, Hashable):
             return field
-        else:
-            return repr(field)
+        return repr(field)
 
     if len(properties) == 1:
         item = properties[0]
         return to_hashable(obj.get(item))
-    else:
-        id = tuple(to_hashable(obj.get(item)) for item in properties)
-        if set(id) == {None}:
-            return None
-        else:
-            return id
+    obj_id = tuple(to_hashable(obj.get(item)) for item in properties)
+    if set(obj_id) == {None}:
+        return None
+    return obj_id
 
 
 def resolve_object_value(object_value: Any, bundle: Bundle) -> Any:
@@ -64,23 +61,23 @@ def ensure_context_uniqueness(
     errors = []
     for jsonpath, (identifier, sub_paths) in config:
         ids_in_context = set()
-        for object in jsonpath.find(df):
-            object_value = resolve_object_value(object.value, bundle)
+        for obj in jsonpath.find(df):
+            object_value = resolve_object_value(obj.value, bundle)
             object_context_id = itemgetter(identifier, object_value)
             if object_context_id is None:
                 continue
             if object_context_id in ids_in_context:
                 errors.append(
                     f"context uniqueness error - file: {df_path}, "
-                    f"path: {str(object.full_path)}, identifier = {identifier}, "
+                    f"path: {obj.full_path!s}, identifier = {identifier}, "
                     f"value = {object_context_id}"
                 )
             else:
                 ids_in_context.add(object_context_id)
-                hash_id = hashlib.md5()
+                hash_id = hashlib.md5()  # noqa: S324
                 for i in object_context_id:
                     hash_id.update(str(i).encode())
-                object.value["__identifier"] = hash_id.hexdigest()
+                obj.value["__identifier"] = hash_id.hexdigest()
             if sub_paths:
                 errors.extend(
                     ensure_context_uniqueness(object_value, df_path, sub_paths, bundle)
@@ -160,32 +157,27 @@ def process_data_file_schema_object(
             ctx.datafile_object_identifier_paths[datafile_schema],
             [],
         )
-    elif datafile_schema in ctx.schema_path:
-        # loop prevention
+    if datafile_schema in ctx.schema_path:
         return [], {}, []
-    else:
-        (
-            resource_ref_paths,
-            object_identifiers,
-            unique_identifiers,
-        ) = _find_resource_field_paths(
-            datafile_schema, schema_object, graphql_type, ctx
-        )
-        # fill result cache
-        ctx.datafile_schema_resource_ref_paths[datafile_schema] = resource_ref_paths
-        ctx.datafile_object_identifier_paths[datafile_schema] = dict(object_identifiers)
-        return resource_ref_paths, object_identifiers, unique_identifiers
+    (
+        resource_ref_paths,
+        object_identifiers,
+        unique_identifiers,
+    ) = _find_resource_field_paths(datafile_schema, schema_object, graphql_type, ctx)
+    # fill result cache
+    ctx.datafile_schema_resource_ref_paths[datafile_schema] = resource_ref_paths
+    ctx.datafile_object_identifier_paths[datafile_schema] = dict(object_identifiers)
+    return resource_ref_paths, object_identifiers, unique_identifiers
 
 
-def _find_resource_field_paths(
+def _find_resource_field_paths(  # noqa: C901
     datafile_schema: str,
     schema_object: dict[str, Any],
     graphql_type: GraphqlType,
     ctx: Context,
 ) -> list[str]:
     """
-    inspecting a property of a datafile schema (and corresponding graphql type) to
-    find all paths to resourcerefs
+    inspecting a property of a datafile schema (and corresponding graphql type) to find all paths to resourcerefs
 
     * the trivial case is the property being a `resourceref` itself
     * if the property is a simple nested structure, we call this function again with the
@@ -199,7 +191,7 @@ def _find_resource_field_paths(
     resource_paths = []
     object_identifier_paths = {}
     unique_properties = []
-    for property_name, property in schema_object.get("properties", {}).items():
+    for property_name, prop in schema_object.get("properties", {}).items():
         property_gql_field = (
             graphql_type.fields_by_name.get(property_name, {}) if graphql_type else {}
         )
@@ -212,7 +204,7 @@ def _find_resource_field_paths(
             is_array,
             property_schema_name,
             property_schema_object,
-        ) = _resolve_property_schema(property, ctx.bundle.schemas)
+        ) = _resolve_property_schema(prop, ctx.bundle.schemas)
         if not property_schema_name and property_graphql_type:
             property_schema_name = property_graphql_type.spec.get("datafile")
             if property_schema_name:
@@ -229,12 +221,12 @@ def _find_resource_field_paths(
             else:
                 resource_paths.append(property_name)
         elif property_schema_object:
-            interfaceResolverField = (
+            interface_resolver_field = (
                 property_graphql_type.get_interface_resolver_field()
                 if property_graphql_type
                 else None
             )
-            if interfaceResolverField and "oneOf" in property_schema_object:
+            if interface_resolver_field and "oneOf" in property_schema_object:
                 for sub_schema_object in property_schema_object.get("oneOf"):
                     if "properties" not in sub_schema_object:
                         # sub type is a ref - resolve it
@@ -244,7 +236,7 @@ def _find_resource_field_paths(
                     if not sub_schema_object:
                         continue
                     for sub_schema_discriminator in sub_schema_object["properties"][
-                        interfaceResolverField
+                        interface_resolver_field
                     ]["enum"]:
                         property_graphql_sub_type = property_graphql_type.get_sub_type(
                             sub_schema_discriminator
@@ -259,15 +251,13 @@ def _find_resource_field_paths(
                             property_graphql_sub_type,
                             ctx,
                         )
-                        for p in sub_schema_resource_paths:
-                            resource_paths.append(
-                                f"{property_name}[?(@.{interfaceResolverField}"
-                                f"=="
-                                f"'{sub_schema_discriminator}')].{p}"
-                            )
+                        resource_paths.extend([
+                            f"{property_name}[?(@.{interface_resolver_field}=='{sub_schema_discriminator}')].{p}"
+                            for p in sub_schema_resource_paths
+                        ])
                         if sub_unique_properties:
                             object_identifier_paths[
-                                f"{property_name}[?(@.{interfaceResolverField}"
+                                f"{property_name}[?(@.{interface_resolver_field}"
                                 f"=="
                                 f"'{sub_schema_discriminator}')]"
                             ] = (
@@ -304,8 +294,9 @@ def _find_resource_field_paths(
                     property_name_jsonpath = property_name
                     if is_array:
                         property_name_jsonpath = f"{property_name}[*]"
-                    for p in property_resource_paths:
-                        resource_paths.append(f"{property_name_jsonpath}.{p}")
+                    resource_paths.extend([
+                        f"{property_name_jsonpath}.{p}" for p in property_resource_paths
+                    ])
                     if property_unique_properties:
                         object_identifier_paths[property_name_jsonpath] = (
                             property_unique_properties,
@@ -322,34 +313,27 @@ def _find_resource_field_paths(
     return resource_paths, object_identifier_paths, unique_properties
 
 
-def _resolve_property_schema(property, schemas) -> tuple[bool, str | None, dict | None]:
-    """
-    this is a helper function to get the schema definition of a property, transparently
-    dealing with refs and schema refs.
-    """
-    type = property.get("type")
-    if type == "array":
+def _resolve_property_schema(prop, schemas) -> tuple[bool, str | None, dict | None]:
+    """this is a helper function to get the schema definition of a property, transparently dealing with refs and schema refs"""
+    prop_type = prop.get("type")
+    if prop_type == "array":
         _, datafile_type, schema_object = _resolve_property_schema(
-            property.get("items", {}), schemas
+            prop.get("items", {}), schemas
         )
         return True, datafile_type, schema_object
-    elif type == "object":
-        return False, None, property
-    elif "oneOf" in property:
-        return False, None, property
-    else:
-        ref = property.get("$ref")
-        schema_ref = property.get("$schemaRef")
-        if schema_ref:
-            if isinstance(schema_ref, str) and schema_ref in schemas:
-                return False, schema_ref, schemas[schema_ref]
-            elif isinstance(schema_ref, dict):
-                return (
-                    False,
-                    schema_ref["properties"].get("$schema", {}).get("enum")[0],
-                    schema_ref,
-                )
-        if ref:
-            return False, ref, schemas.get(ref)
-        else:
-            return False, None, None
+    if prop_type == "object" or "oneOf" in prop:
+        return False, None, prop
+    ref = prop.get("$ref")
+    schema_ref = prop.get("$schemaRef")
+    if schema_ref:
+        if isinstance(schema_ref, str) and schema_ref in schemas:
+            return False, schema_ref, schemas[schema_ref]
+        if isinstance(schema_ref, dict):
+            return (
+                False,
+                schema_ref["properties"].get("$schema", {}).get("enum")[0],
+                schema_ref,
+            )
+    if ref:
+        return False, ref, schemas.get(ref)
+    return False, None, None
