@@ -9,9 +9,9 @@ USER 0
 
 COPY LICENSE /licenses/LICENSE
 
-RUN microdnf install -y python3.11 python3.11-pip && \
-    update-alternatives --install /usr/bin/python3 python /usr/bin/python3.11 1 && \
-    update-alternatives --install /usr/bin/pip3 pip /usr/bin/pip3.11 1
+RUN microdnf install -y python3.12 python3.12-pip && \
+    update-alternatives --install /usr/bin/python3 python /usr/bin/python3.12 1 && \
+    update-alternatives --install /usr/bin/pip3 pip /usr/bin/pip3.12 1
 
 RUN useradd -u 1001 -g root -d ${HOME} -m -s /sbin/nologin -c "Default Application User" ${USER}
 
