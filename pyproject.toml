@@ -1,8 +1,8 @@
 # Ruff configuration
 [tool.ruff]
 line-length = 88
-target-version = 'py311'
-required-version = "0.4.8" # keep in sync with dev dependencies!
+target-version = 'py312'
+required-version = "0.7.3" # keep in sync with dev dependencies!
 src = ["validator"]
 extend-exclude = [
     ".local", # used by poetry in local venv
