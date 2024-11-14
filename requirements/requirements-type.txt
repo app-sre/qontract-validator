@@ -1,4 +1,0 @@
-mypy
-types-jsonschema
-types-PyYAML
-types-requests

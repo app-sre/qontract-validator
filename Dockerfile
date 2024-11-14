@@ -1,33 +1,44 @@
-# base
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5 AS base
-
-ENV HOME=/validator \
-    USER=app \
-    PATH=/validator/.local/bin:$PATH
-
-USER 0
+##############
+# base stage #
+##############
+FROM registry.access.redhat.com/ubi9/python-312 AS base
 
 COPY LICENSE /licenses/LICENSE
 
-RUN microdnf install -y python3.12 python3.12-pip && \
-    update-alternatives --install /usr/bin/python3 python /usr/bin/python3.12 1 && \
-    update-alternatives --install /usr/bin/pip3 pip /usr/bin/pip3.12 1
+#################
+# builder stage #
+#################
+FROM base AS builder
+COPY --from=ghcr.io/astral-sh/uv:0.5.1@sha256:190cbcca15602bad4531b4310f928fd34a036d50ec3edb6389edc167e21c35b6 /uv /bin/uv
 
-RUN useradd -u 1001 -g root -d ${HOME} -m -s /sbin/nologin -c "Default Application User" ${USER}
+ENV \
+    # use venv from ubi image
+    UV_PROJECT_ENVIRONMENT="/opt/app-root" \
+    # compile bytecode for faster startup
+    UV_COMPILE_BYTECODE="true" \
+    # disable uv cache. it doesn't make sense in a container
+    UV_NO_CACHE=true
 
-WORKDIR $HOME
+COPY pyproject.toml uv.lock ./
+# Test lock file is up to date
+RUN uv lock --locked
+# Install the project dependencies
+RUN uv sync --frozen --no-install-project --no-group dev
 
-# test
-FROM base AS test
-USER app
-ENV TOX_PARALLEL_NO_SPINNER=1
-RUN python3 -m pip install tox
-COPY --chown=$USER . $HOME
-CMD ["tox"]
+COPY README.md ./
+COPY validator ./validator
+RUN uv sync --frozen --no-group dev
 
-# prod
+##############
+# test stage #
+##############
+FROM builder AS test
+COPY Makefile ./
+RUN uv sync --frozen
+RUN make _test
+
+##############
+# prod stage #
+##############
 FROM base AS prod
-USER app
-COPY --chown=$USER validator $HOME/validator
-COPY --chown=$USER setup.py $HOME
-RUN pwd && ls -al && env && python3 -m pip install -e .
+COPY --from=builder /opt/app-root /opt/app-root
