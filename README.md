@@ -1,4 +1,4 @@
-# qontract-validator
+# qontract-validator test
 
 This project contains the tools necessary to bundle data into the format used by [qontract-server](https://github.com/app-sre/qontract-server) and to JSON validate it's schema.
 
