@@ -7,7 +7,9 @@ metadata:
     build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "10"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch == "master"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
+      == "master"
+  creationTimestamp: null
   labels:
     appstudio.openshift.io/application: qontract-validator-master
     appstudio.openshift.io/component: qontract-validator-master
@@ -28,10 +30,9 @@ spec:
     value: Dockerfile
   - name: path-context
     value: .
-  - target-stage:
+  - name: ""
     value: test
   pipelineRef:
-    resolver: git
     params:
     - name: url
       value: https://github.com/app-sre/shared-pipelines
@@ -39,15 +40,22 @@ spec:
       value: main
     - name: pathInRepo
       value: pipelines/multi-arch-build-pipeline.yaml
+    resolver: git
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-qontract-validator-master
   workspaces:
   - name: workspace
     volumeClaimTemplate:
+      metadata:
+        creationTimestamp: null
       spec:
         accessModes:
         - ReadWriteOnce
         resources:
           requests:
             storage: 1Gi
+      status: {}
   - name: git-auth
     secret:
       secretName: '{{ git_auth_secret }}'
+status: {}
