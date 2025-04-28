@@ -28,7 +28,7 @@ spec:
     value: Dockerfile
   - name: path-context
     value: .
-  - target-stage:
+  - name: target-stage
     value: test
   pipelineRef:
     resolver: git
@@ -39,6 +39,8 @@ spec:
       value: main
     - name: pathInRepo
       value: pipelines/multi-arch-build-pipeline.yaml
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-qontract-validator-master
   workspaces:
   - name: workspace
     volumeClaimTemplate:
