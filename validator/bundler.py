@@ -106,6 +106,7 @@ def init_specs(
         )
         for root, _, files in work_dir.walk(top_down=False)
         for name in files
+        if not name.startswith(".")
     ]
 
 
