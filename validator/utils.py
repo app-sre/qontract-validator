@@ -40,9 +40,11 @@ def parse_anymarkup_file(
     return res, checksum
 
 
-def _load_json(data):
+def _load_json(data: bytes) -> dict:
     return json.loads(data)
 
 
-def _load_yaml(data):
-    return yaml.safe_load(data)
+def _load_yaml(data: bytes) -> dict:
+    if hasattr(yaml, "CSafeLoader"):
+        return yaml.load(data, Loader=yaml.CSafeLoader)
+    return yaml.load(data, Loader=yaml.SafeLoader)
