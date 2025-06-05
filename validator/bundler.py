@@ -1,88 +1,88 @@
-import hashlib
 import json
 import logging
-import os
 import re
 import sys
-from multiprocessing.dummy import Pool as ThreadPool
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from pathlib import Path
 
 import click
 
 from validator.bundle import Bundle
 from validator.postprocess import postprocess_bundle
-from validator.utils import parse_anymarkup_file
+from validator.utils import SUPPORTED_EXTENSIONS, get_checksum, parse_anymarkup_file
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.WARNING)
 
 # regex to get the schema from the resource files.
-# we use multiline as we have a raw string with newlines caracters
+# we use multiline as we have a raw string with newlines characters
 # we don't use pyyaml to parse it as they are jinja templates in most cases
 SCHEMA_RE = re.compile(r"^\$schema: (?P<schema>.+\.ya?ml)$", re.MULTILINE)
 
 CHECKSUM_SCHEMA_FIELD = "$file_sha256sum"
 
 
-def bundle_datafiles(data_dir, thread_pool_size, checksum_field_name=None):
+@dataclass(frozen=True)
+class Spec:
+    work_dir: Path
+    root: Path
+    name: str
+    checksum_field_name: str | None = None
+
+
+def build_content(
+    content: dict,
+    checksum_field_name: str | None = None,
+    checksum: str | None = None,
+) -> dict:
+    if checksum_field_name:
+        content[checksum_field_name] = checksum
+    return content
+
+
+def bundle_datafiles(
+    data_dir: Path,
+    thread_pool_size: int,
+    checksum_field_name: str | None = None,
+) -> dict[str, dict]:
     specs = init_specs(data_dir, checksum_field_name)
-    pool = ThreadPool(thread_pool_size)
-    results = pool.map(bundle_datafile_spec, specs)
-
-    def do_inject_checksum(content, checksum):
-        if checksum_field_name:
-            content[checksum_field_name] = checksum
-        return content
-
-    return {
-        path: do_inject_checksum(content, sha256sum)
-        for path, content, sha256sum in results
-        if path is not None
-    }
+    with ThreadPoolExecutor(max_workers=thread_pool_size) as pool:
+        return {
+            path: build_content(content, checksum_field_name, checksum)
+            for path, content, checksum in pool.map(bundle_datafile_spec, specs)
+            if path is not None and content is not None
+        }
 
 
-def bundle_datafile_spec(spec):
-    work_dir = spec["work_dir"]
-    root = spec["root"]
-    name = spec["name"]
-    if not re.search(r"\.(ya?ml|json)$", name):
+def bundle_datafile_spec(spec: Spec) -> tuple[str | None, dict | None, str | None]:
+    path = spec.root / spec.name
+    if path.suffix not in SUPPORTED_EXTENSIONS:
         return None, None, None
-
-    path = Path(root) / name
-    rel_abs_path = path.as_posix()[len(work_dir) :]
-
+    rel_abs_path = path.as_posix().removeprefix(spec.work_dir.as_posix())
     logging.info("Processing: %s\n", rel_abs_path)
-    content, checksum = parse_anymarkup_file(path, spec["calc_checksum"])
+    content, checksum = parse_anymarkup_file(path, spec.checksum_field_name)
     return rel_abs_path, content, checksum
 
 
 def bundle_resources(resource_dir, thread_pool_size):
     specs = init_specs(resource_dir)
-    pool = ThreadPool(thread_pool_size)
-    results = pool.map(bundle_resource_spec, specs)
-    return dict(results)
+    with ThreadPoolExecutor(max_workers=thread_pool_size) as pool:
+        return dict(pool.map(bundle_resource_spec, specs))
 
 
-def bundle_resource_spec(spec):
-    work_dir = spec["work_dir"]
-    root = spec["root"]
-    name = spec["name"]
-
-    path = Path(root) / name
-    rel_abs_path = path.as_posix()[len(work_dir) :]
+def bundle_resource_spec(spec: Spec) -> tuple[str, dict]:
+    path = spec.root / spec.name
+    rel_abs_path = path.as_posix().removeprefix(spec.work_dir.as_posix())
 
     logging.info("Resource: %s\n", rel_abs_path)
-    with Path.open(path, "rb") as f:
-        content = f.read().decode(errors="replace")
+    data = path.read_bytes()
+    content = data.decode("utf-8")
 
     schema = None
-    s = SCHEMA_RE.search(content)
-    if s:
+    if s := SCHEMA_RE.search(content):
         schema = s.group("schema")
 
-    # hash
-    m = hashlib.sha256()
-    m.update(content.encode())
-    sha256sum = m.hexdigest()
+    sha256sum = get_checksum(data)
 
     return rel_abs_path, {
         "path": rel_abs_path,
@@ -93,31 +93,28 @@ def bundle_resource_spec(spec):
     }
 
 
-def init_specs(work_dir, calc_checksum=None):
-    if calc_checksum is None:
-        calc_checksum = False
-    specs = []
-    for root, _, files in os.walk(work_dir, topdown=False):
-        for name in files:
-            spec = {
-                "work_dir": work_dir,
-                "root": root,
-                "name": name,
-                "calc_checksum": calc_checksum,
-            }
-            specs.append(spec)
-    return specs
+def init_specs(
+    work_dir: Path,
+    checksum_field_name: str | None = None,
+) -> list[Spec]:
+    return [
+        Spec(
+            work_dir=work_dir,
+            root=root,
+            name=name,
+            checksum_field_name=checksum_field_name,
+        )
+        for root, _, files in work_dir.walk(top_down=False)
+        for name in files
+    ]
 
 
-def bundle_graphql(graphql_schema_file):
+def bundle_graphql(graphql_schema_file: Path):
+    if not graphql_schema_file.is_file():
+        msg = f"could not find file {graphql_schema_file}"
+        raise FileNotFoundError(msg)
     content, _ = parse_anymarkup_file(graphql_schema_file)
     return content
-
-
-def fix_dir(directory):
-    if directory[-1] == "/":
-        directory = directory[:-1]
-    return directory
 
 
 @click.command()
@@ -139,19 +136,15 @@ def main(
     git_commit,
     git_commit_timestamp,
 ):
-    schema_dir = fix_dir(schema_dir)
-    data_dir = fix_dir(data_dir)
-    resource_dir = fix_dir(resource_dir)
-
     bundle = Bundle(
         git_commit=git_commit,
         git_commit_timestamp=git_commit_timestamp,
-        schemas=bundle_datafiles(schema_dir, thread_pool_size),
-        graphql=bundle_graphql(graphql_schema_file),
+        schemas=bundle_datafiles(Path(schema_dir), thread_pool_size),
+        graphql=bundle_graphql(Path(graphql_schema_file)),
         data=bundle_datafiles(
-            data_dir, thread_pool_size, checksum_field_name=CHECKSUM_SCHEMA_FIELD
+            Path(data_dir), thread_pool_size, checksum_field_name=CHECKSUM_SCHEMA_FIELD
         ),
-        resources=bundle_resources(resource_dir, thread_pool_size),
+        resources=bundle_resources(Path(resource_dir), thread_pool_size),
     )
 
     errors = postprocess_bundle(bundle, checksum_field_name=CHECKSUM_SCHEMA_FIELD)
