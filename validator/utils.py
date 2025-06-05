@@ -1,45 +1,50 @@
 import hashlib
 import json
+from enum import StrEnum
 from pathlib import Path
 
 import yaml
 
 
-def parse_anymarkup_file(filename, calc_checksum=None):
-    if calc_checksum is None:
-        calc_checksum = False
-    if not Path(filename).is_file():
-        msg = f"could not find file {filename}"
-        raise FileNotFoundError(msg)
+class FileType(StrEnum):
+    YAML = "yaml"
+    JSON = "json"
 
-    file_ext = Path(filename).suffix[1:]
 
-    res = {}
-    if file_ext in {"yaml", "yml"}:
-        with Path.open(filename, encoding="utf-8") as fh:
-            content = fh.read()
+SUPPORTED_EXTENSIONS = {
+    ".yaml": FileType.YAML,
+    ".yml": FileType.YAML,
+    ".json": FileType.JSON,
+}
+
+
+def get_checksum(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def parse_anymarkup_file(
+    path: Path,
+    checksum_field_name: str | None = None,
+) -> tuple[dict, str | None]:
+    match SUPPORTED_EXTENSIONS.get(path.suffix):
+        case FileType.YAML:
+            content = path.read_bytes()
             res = _load_yaml(content)
-    elif file_ext == "json":
-        with Path.open(filename, encoding="utf-8") as fh:
-            content = fh.read()
+        case FileType.JSON:
+            content = path.read_bytes()
             res = _load_json(content)
-    else:
-        msg = f"markup parsing for extension {file_ext} is not implemented"
-        raise NotImplementedError(msg)
-
-    checksum = _checksum(content.encode()) if calc_checksum else None
+        case _:
+            msg = f"markup parsing for extension {path.suffix} is not implemented"
+            raise NotImplementedError(msg)
+    checksum = get_checksum(content) if checksum_field_name else None
     return res, checksum
 
 
-def _load_json(data):
+def _load_json(data: bytes) -> dict:
     return json.loads(data)
 
 
-def _load_yaml(data):
-    return yaml.safe_load(data)
-
-
-def _checksum(data):
-    m = hashlib.sha256()
-    m.update(data)
-    return m.hexdigest()
+def _load_yaml(data: bytes) -> dict:
+    if hasattr(yaml, "CSafeLoader"):
+        return yaml.load(data, Loader=yaml.CSafeLoader)
+    return yaml.load(data, Loader=yaml.SafeLoader)
