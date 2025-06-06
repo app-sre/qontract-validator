@@ -517,9 +517,9 @@ def main(
 
     # Output
     if only_errors:
-        sys.stdout.write(json.dumps(errors, indent=4) + "\n")
+        sys.stdout.write(json.dumps(errors, indent=2) + "\n")
     else:
-        sys.stdout.write(json.dumps(results, indent=4) + "\n")
+        sys.stdout.write(json.dumps(results, indent=2) + "\n")
 
     if len(errors) > 0:
         sys.exit(1)
