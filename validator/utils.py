@@ -1,7 +1,7 @@
 import hashlib
 import json
 from enum import StrEnum
-from pathlib import Path
+from pathlib import Path, PurePath
 
 import yaml
 
@@ -18,18 +18,28 @@ SUPPORTED_EXTENSIONS = {
 }
 
 
+def get_file_type(path: PurePath) -> FileType | None:
+    return SUPPORTED_EXTENSIONS.get(path.suffix)
+
+
 def get_checksum(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def load_yaml(data: bytes) -> dict:
+    if hasattr(yaml, "CSafeLoader"):
+        return yaml.load(data, Loader=yaml.CSafeLoader)
+    return yaml.load(data, Loader=yaml.SafeLoader)
 
 
 def parse_anymarkup_file(
     path: Path,
     checksum_field_name: str | None = None,
 ) -> tuple[dict, str | None]:
-    match SUPPORTED_EXTENSIONS.get(path.suffix):
+    match get_file_type(path):
         case FileType.YAML:
             content = path.read_bytes()
-            res = _load_yaml(content)
+            res = load_yaml(content)
         case FileType.JSON:
             content = path.read_bytes()
             res = _load_json(content)
@@ -42,9 +52,3 @@ def parse_anymarkup_file(
 
 def _load_json(data: bytes) -> dict:
     return json.loads(data)
-
-
-def _load_yaml(data: bytes) -> dict:
-    if hasattr(yaml, "CSafeLoader"):
-        return yaml.load(data, Loader=yaml.CSafeLoader)
-    return yaml.load(data, Loader=yaml.SafeLoader)
