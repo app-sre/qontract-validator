@@ -18,6 +18,7 @@ from validator.bundle import (
     Bundle,
     load_bundle,
 )
+from validator.utils import load_yaml
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.WARNING)
 
@@ -310,7 +311,7 @@ def validate_resource(
         return ValidationOK(ValidatedFileKind.NONE, filename, "")
 
     try:
-        data = yaml.safe_load(content)
+        data = load_yaml(content)
     except yaml.error.YAMLError:
         logging.warning("We can't validate resource with schema %s", filename)
         return ValidationOK(ValidatedFileKind.NONE, filename, "")
