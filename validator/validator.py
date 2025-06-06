@@ -6,6 +6,7 @@ from collections import defaultdict
 from collections.abc import Iterator
 from enum import StrEnum
 from functools import cache
+from pathlib import PurePath
 from typing import IO, Any, NotRequired, TypedDict
 
 import click
@@ -18,7 +19,7 @@ from validator.bundle import (
     Bundle,
     load_bundle,
 )
-from validator.utils import load_yaml
+from validator.utils import load_yaml, SUPPORTED_EXTENSIONS, FileType, get_file_type
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.WARNING)
 
@@ -306,12 +307,11 @@ def validate_resource(
     filename: str,
     resource: dict[str, Any],
 ) -> ValidationError | ValidationOK:
-    content = resource["content"]
-    if "$schema" not in content:
+    if not resource["$schema"] or get_file_type(PurePath(filename)) != FileType.YAML:
         return ValidationOK(ValidatedFileKind.NONE, filename, "")
 
     try:
-        data = load_yaml(content)
+        data = load_yaml(resource["content"])
     except yaml.error.YAMLError:
         logging.warning("We can't validate resource with schema %s", filename)
         return ValidationOK(ValidatedFileKind.NONE, filename, "")
