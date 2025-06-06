@@ -10,7 +10,13 @@ import click
 
 from validator.bundle import Bundle
 from validator.postprocess import postprocess_bundle
-from validator.utils import SUPPORTED_EXTENSIONS, get_checksum, parse_anymarkup_file
+from validator.utils import (
+    SUPPORTED_EXTENSIONS,
+    FileType,
+    get_checksum,
+    get_file_type,
+    parse_anymarkup_file,
+)
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.WARNING)
 
@@ -70,6 +76,14 @@ def bundle_resources(resource_dir, thread_pool_size):
         return dict(pool.map(bundle_resource_spec, specs))
 
 
+def get_schema_from_resource(path: Path, content: str) -> str | None:
+    if get_file_type(path) != FileType.YAML:
+        return None
+    if s := SCHEMA_RE.search(content):
+        return s.group("schema")
+    return None
+
+
 def bundle_resource_spec(spec: Spec) -> tuple[str, dict]:
     path = spec.root / spec.name
     rel_abs_path = path.as_posix().removeprefix(spec.work_dir.as_posix())
@@ -77,13 +91,8 @@ def bundle_resource_spec(spec: Spec) -> tuple[str, dict]:
     logging.info("Resource: %s\n", rel_abs_path)
     data = path.read_bytes()
     content = data.decode("utf-8")
-
-    schema = None
-    if s := SCHEMA_RE.search(content):
-        schema = s.group("schema")
-
+    schema = get_schema_from_resource(path, content)
     sha256sum = get_checksum(data)
-
     return rel_abs_path, {
         "path": rel_abs_path,
         "content": content,
