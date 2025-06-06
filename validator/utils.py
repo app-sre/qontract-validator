@@ -22,6 +22,12 @@ def get_checksum(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def load_yaml(data: bytes) -> dict:
+    if hasattr(yaml, "CSafeLoader"):
+        return yaml.load(data, Loader=yaml.CSafeLoader)
+    return yaml.load(data, Loader=yaml.SafeLoader)
+
+
 def parse_anymarkup_file(
     path: Path,
     checksum_field_name: str | None = None,
@@ -29,7 +35,7 @@ def parse_anymarkup_file(
     match SUPPORTED_EXTENSIONS.get(path.suffix):
         case FileType.YAML:
             content = path.read_bytes()
-            res = _load_yaml(content)
+            res = load_yaml(content)
         case FileType.JSON:
             content = path.read_bytes()
             res = _load_json(content)
@@ -42,9 +48,3 @@ def parse_anymarkup_file(
 
 def _load_json(data: bytes) -> dict:
     return json.loads(data)
-
-
-def _load_yaml(data: bytes) -> dict:
-    if hasattr(yaml, "CSafeLoader"):
-        return yaml.load(data, Loader=yaml.CSafeLoader)
-    return yaml.load(data, Loader=yaml.SafeLoader)
