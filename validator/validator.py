@@ -1,9 +1,10 @@
 import contextlib
+import itertools
 import json
 import logging
 import sys
 from collections import defaultdict
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from enum import StrEnum
 from functools import cache
 from typing import IO, Any, NotRequired, TypedDict
@@ -167,8 +168,13 @@ class ValidationError:
         )
 
 
-def get_handlers(schemas_bundle):
-    return {"": lambda x: schemas_bundle[x]}
+def get_handlers(
+    schemas_bundle: dict[str, dict[str, Any]],
+) -> dict[str, Callable]:
+    def get_schema(uri: str) -> dict[str, Any]:
+        return schemas_bundle[uri]
+
+    return {"": get_schema}
 
 
 def validate_schema(
@@ -256,7 +262,7 @@ def _get_unique_field_names(gql_fields: list[dict[str, Any]]) -> list[str]:
 
 def validate_unique_fields(
     bundle: Bundle,
-) -> list[ValidationResult]:
+) -> Iterator[ValidationError]:
     graphql = {
         item.spec["name"]: item.spec["fields"] for item in bundle.list_graphql_types()
     }
@@ -278,20 +284,18 @@ def validate_unique_fields(
             key = (data["$schema"], field, data.get(field))
             unique_fields[key].append(filename)
 
-    return [
-        ValidationError(
-            ValidatedFileKind.UNIQUE,
-            filenames[0],
-            "DUPLICATE_UNIQUE_FIELD",
-            DuplicateUniqueFieldError(
-                f"The field '{field}' is repeated: {filenames}",
-            ),
-            ref=schema,
-            ptr=field,
-        ).dump()
-        for (schema, field, _), filenames in unique_fields.items()
-        if len(filenames) > 1
-    ]
+    for (schema, field, _), filenames in unique_fields.items():
+        if len(filenames) > 1:
+            yield ValidationError(
+                ValidatedFileKind.UNIQUE,
+                filenames[0],
+                "DUPLICATE_UNIQUE_FIELD",
+                DuplicateUniqueFieldError(
+                    f"The field '{field}' is repeated: {filenames}",
+                ),
+                ref=schema,
+                ptr=field,
+            )
 
 
 def validate_resource(
@@ -318,74 +322,60 @@ def validate_ref(
     data: dict[str, Any],
     ptr: str,
     ref: dict[str, Any],
-) -> list[ValidationError | ValidationRefOK | ValidationOK]:
+) -> Iterator[ValidationError | ValidationRefOK | ValidationOK]:
     kind = ValidatedFileKind.REF
 
     ref_data = bundle.get(ref["$ref"])
     if ref_data is None:
-        return [
-            ValidationError(
-                kind, filename, "FILE_NOT_FOUND", NotFoundError(), ref=ref["$ref"]
-            )
-        ]
+        yield ValidationError(
+            kind, filename, "FILE_NOT_FOUND", NotFoundError(), ref=ref["$ref"]
+        )
+        return
 
     schema = schemas_bundle.get(data["$schema"])
     if schema is None:
-        return [
-            ValidationError(
-                kind, filename, "SCHEMA_NOT_FOUND", NotFoundError(), ref=ref["$ref"]
-            )
-        ]
+        yield ValidationError(
+            kind, filename, "SCHEMA_NOT_FOUND", NotFoundError(), ref=ref["$ref"]
+        )
+        return
 
     try:
         schema_infos = get_schema_info_from_pointer(schema, ptr, schemas_bundle)
     except KeyError as e:
-        return [
-            ValidationError(
-                kind,
-                filename,
-                "SCHEMA_DEFINITION_NOT_FOUND",
-                e,
-                ref=ref["$ref"],
-                ptr=ptr,
-            )
-        ]
+        yield ValidationError(
+            kind,
+            filename,
+            "SCHEMA_DEFINITION_NOT_FOUND",
+            e,
+            ref=ref["$ref"],
+            ptr=ptr,
+        )
+        return
 
-    errors = []
     for schema_info in schema_infos:
-        expected_schema = schema_info.get("$schemaRef")
-
-        if expected_schema is not None:
+        if expected_schema := schema_info.get("$schemaRef"):
             if isinstance(expected_schema, str):
                 if expected_schema != ref_data["$schema"]:
-                    errors.append(
-                        ValidationError(
-                            kind,
-                            filename,
-                            "INCORRECT_SCHEMA",
-                            IncorrectSchemaError(ref_data["$schema"], expected_schema),
-                            ref=ref["$ref"],
-                        )
+                    yield ValidationError(
+                        kind,
+                        filename,
+                        "INCORRECT_SCHEMA",
+                        IncorrectSchemaError(ref_data["$schema"], expected_schema),
+                        ref=ref["$ref"],
                     )
                 else:
-                    return [
-                        ValidationRefOK(kind, filename, ref["$ref"], data["$schema"])
-                    ]
+                    yield ValidationRefOK(kind, filename, ref["$ref"], data["$schema"])
+                    return
             else:
                 try:
                     validator = Draft6Validator(expected_schema)
                     validator.validate(ref_data)
-                    return [
-                        ValidationRefOK(kind, filename, ref["$ref"], data["$schema"])
-                    ]
+                    yield ValidationRefOK(kind, filename, ref["$ref"], data["$schema"])
+                    return
                 except jsonschema.exceptions.ValidationError as e:
-                    errors.append(
-                        ValidationError(
-                            kind, filename, "SCHEMA_REF_VALIDATION_ERROR", e
-                        )
+                    yield ValidationError(
+                        kind, filename, "SCHEMA_REF_VALIDATION_ERROR", e
                     )
-
-    return errors
 
 
 @cache
@@ -461,54 +451,53 @@ def validate_bundle(
     bundle: Bundle,
 ) -> list[ValidationResult]:
     # Validate schemas
-    results_schemas = [
-        validate_schema(bundle.schemas, filename, schema_data).dump()
+    results_schemas = (
+        validate_schema(bundle.schemas, filename, schema_data)
         for filename, schema_data in bundle.schemas.items()
-    ]
+    )
 
     # validate datafiles
-    results_files = [
-        validate_file(bundle.schemas, filename, data).dump()
+    results_files = (
+        validate_file(bundle.schemas, filename, data)
         for filename, data in bundle.data.items()
-    ]
+    )
 
     # validate unique fields
     results_unique_fields = validate_unique_fields(bundle)
 
     # validate resources
-    results_resources = [
-        validate_resource(bundle.schemas, filename, resource).dump()
+    results_resources = (
+        validate_resource(bundle.schemas, filename, resource)
         for filename, resource in bundle.resources.items()
-    ]
+    )
 
     # validate refs
-    results_refs = [
-        result.dump()
+    results_refs = (
+        result
         for filename, data in bundle.data.items()
         for ptr, ref in find_refs(data)
         for result in validate_ref(
             bundle.schemas, bundle.data, filename, data, ptr, ref
         )
-    ]
+    )
 
     results_graphql_schemas = (
-        [
-            validate_file(
-                bundle.schemas, "graphql-schemas/schema.yml", bundle.graphql
-            ).dump()
-        ]
+        [validate_file(bundle.schemas, "graphql-schemas/schema.yml", bundle.graphql)]
         if isinstance(bundle.graphql, dict) and bundle.graphql["$schema"]
         else []
     )
 
-    return (
-        results_schemas
-        + results_files
-        + results_unique_fields
-        + results_resources
-        + results_refs
-        + results_graphql_schemas
-    )
+    return [
+        result.dump()
+        for result in itertools.chain(
+            results_schemas,
+            results_files,
+            results_unique_fields,
+            results_resources,
+            results_refs,
+            results_graphql_schemas,
+        )
+    ]
 
 
 @click.command()
