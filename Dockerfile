@@ -1,7 +1,7 @@
 ##############
 # base stage #
 ##############
-FROM registry.access.redhat.com/ubi9/python-312@sha256:b3316249c58e1800118ec1f311514f6ec355a60d8c78383bfa868887952b2ee1 AS base
+FROM registry.access.redhat.com/ubi9/python-312:9.6@sha256:9d6f32c64224dd7f3a57ae5ad6a2ba62293cdf4e2e85fd3b195475ee19026c33 AS base
 
 COPY LICENSE /licenses/LICENSE
 
@@ -40,5 +40,5 @@ RUN make _test
 ##############
 # prod stage #
 ##############
-FROM base AS prod
+FROM registry.access.redhat.com/ubi9/python-312-minimal:9.6@sha256:706ed87c6b4b815d44a7cad8774b6c8403ce5a2e113934ceae30a8e807f568d4 AS prod
 COPY --from=builder /opt/app-root /opt/app-root
