@@ -19,5 +19,6 @@ schema:
       properties:
         ext:
           $ref: external_schema
+          desription: A description
 
 ptr: /internal/ext/mirror

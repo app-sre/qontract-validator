@@ -404,6 +404,12 @@ def find_refs(
             yield from find_refs(item, new_ptr)
 
 
+def _get_external_schema_ref(info: dict[str, Any]) -> str | None:
+    if (ref := info.get("$ref")) and ref != "/common-1.json#/definitions/crossref":
+        return ref
+    return None
+
+
 def get_schema_info_from_pointer(
     schema: dict[str, Any],
     ptr: str,
@@ -415,27 +421,27 @@ def get_schema_info_from_pointer(
     for idx, chunk in enumerate(ptr_chunks):
         info = info["items"] if chunk.isdigit() else info["properties"][chunk]
 
-        if list(info.keys()) == ["$ref"]:
+        if ref := _get_external_schema_ref(info):
             # this points to an external schema
             # we need to load it
-            info = schemas_bundle[info["$ref"]]
+            info = schemas_bundle[ref]
         elif list(info.keys()) == ["oneOf"]:
             schemas = []
             # this is a list of type options in an array
             # we look at all of them and try to find at least one where the
             # ptr resolves successfully
-            for ref in info["oneOf"]:
+            for item in info["oneOf"]:
                 with contextlib.suppress(KeyError):
                     schemas.extend(
                         get_schema_info_from_pointer(
-                            schemas_bundle[ref["$ref"]],
+                            schemas_bundle[item["$ref"]],
                             f"/{'/'.join(ptr_chunks[idx + 1 :])}",
                             schemas_bundle,
                         )
                     )
                     # this subtype is not the one we are looking for
                 with contextlib.suppress(KeyError):
-                    schemas.append(schemas_bundle[ref["$schemaRef"]])
+                    schemas.append(schemas_bundle[item["$schemaRef"]])
             if not schemas:
                 msg = (
                     f"unable to resolve schema for {ptr} "
