@@ -1,0 +1,42 @@
+schemas:
+  "schema-1.yml":
+    properties:
+      crossref_array:
+        type: array
+        items:
+          "$ref": "/common-1.json#/definitions/crossref"
+          "$schemaRef": "another-schema-1.yml"
+  "another-schema-1.yml":
+    properties:
+      simple_field:
+        type: string
+graphql:
+  $schema: "graphql-schema-1.yml"
+  confs:
+  - name: Schema_v1
+    fields:
+    - name: crossref_array
+      type: AnotherSchema_v1
+      isList: true
+  - name: AnotherSchema_v1
+    fields:
+    - name: simple_field
+      type: string
+      isUnique: true
+  - name: Query
+    fields:
+    - type: Schema_v1
+      datafileSchema: "schema-1.yml"
+data:
+  file-1-schema-1.yml:
+    $schema: schema-1.yml
+    crossref_array:
+    - $ref: file-2-another-schema-1.yml
+  file-2-schema-1.yml:
+    $schema: schema-1.yml
+    crossref_array:
+    - $ref: file-2-another-schema-1.yml
+  file-2-another-schema-1.yml:
+    $schema: another-schema-1.yml
+    simple_field: bla
+resources: {}
