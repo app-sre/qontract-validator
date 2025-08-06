@@ -1,0 +1,8 @@
+schemas:
+  "common-1.json":
+    $schema: "/json-schema-spec-draft-06.json"
+graphql:
+  $schema: "graphql-schema-1.yml"
+  confs: []
+data: {}
+resources: {}

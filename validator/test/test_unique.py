@@ -2,22 +2,8 @@ from copy import deepcopy
 
 import pytest
 
-from validator.bundle import Bundle
 from validator.postprocess import postprocess_bundle
-from validator.test.fixtures import Fixtures
-
-
-def get_bundle_fixture(name: str) -> Bundle:
-    fxt = Fixtures("unique")
-    fixture = fxt.get_anymarkup(fxt.path(name))
-    return Bundle(
-        git_commit="c",
-        git_commit_timestamp="t",
-        schemas=fixture["schemas"],
-        graphql=fixture["graphql"],
-        data=fixture["data"],
-        resources=fixture["resources"],
-    )
+from validator.test.fixtures import get_bundle_fixture
 
 
 @pytest.mark.parametrize(
@@ -28,7 +14,7 @@ def get_bundle_fixture(name: str) -> Bundle:
     ],
 )
 def test_ok(fixture_name: str) -> None:
-    bundle = get_bundle_fixture(fixture_name)
+    bundle = get_bundle_fixture("unique", fixture_name)
     expected_bundle_dict = deepcopy(bundle.to_dict())
     expected_bundle_dict["schemas"]["another-schema-1.yml"]["properties"][
         "__identifier"
@@ -58,7 +44,7 @@ def test_ok(fixture_name: str) -> None:
     ],
 )
 def test_duplicate(fixture_name: str) -> None:
-    bundle = get_bundle_fixture(fixture_name)
+    bundle = get_bundle_fixture("unique", fixture_name)
 
     errors = postprocess_bundle(bundle)
 
@@ -66,7 +52,7 @@ def test_duplicate(fixture_name: str) -> None:
 
 
 def test_unique_duplicate() -> None:
-    bundle = get_bundle_fixture("unique_duplicate.yml")
+    bundle = get_bundle_fixture("unique", "unique_duplicate.yml")
     expected_bundle_dict = deepcopy(bundle.to_dict())
     expected_bundle_dict["schemas"]["schema-1.yml"]["properties"][
         "__identifier"
@@ -81,7 +67,7 @@ def test_unique_duplicate() -> None:
 
 
 def test_unique_ref_duplicate() -> None:
-    bundle = get_bundle_fixture("unique_ref_duplicate.yml")
+    bundle = get_bundle_fixture("unique", "unique_ref_duplicate.yml")
     expected_bundle_dict = deepcopy(bundle.to_dict())
     expected_bundle_dict["schemas"]["another-schema-1.yml"]["properties"][
         "__identifier"
@@ -96,7 +82,7 @@ def test_unique_ref_duplicate() -> None:
 
 
 def test_unique_ref_array_duplicate_multiple_files() -> None:
-    bundle = get_bundle_fixture("unique_ref_array_duplicate_multiple_files.yml")
+    bundle = get_bundle_fixture("unique", "unique_ref_array_duplicate_multiple_files.yml")
     expected_bundle_dict = deepcopy(bundle.to_dict())
     expected_bundle_dict["schemas"]["another-schema-1.yml"]["properties"][
         "__identifier"
@@ -117,7 +103,7 @@ def test_unique_ref_array_duplicate_multiple_files() -> None:
 
 
 def test_unique_crossref_duplicate() -> None:
-    bundle = get_bundle_fixture("unique_crossref_duplicate.yml")
+    bundle = get_bundle_fixture("unique", "unique_crossref_duplicate.yml")
     expected_bundle_dict = deepcopy(bundle.to_dict())
     expected_bundle_dict["schemas"]["another-schema-1.yml"]["properties"][
         "__identifier"
@@ -132,7 +118,7 @@ def test_unique_crossref_duplicate() -> None:
 
 
 def test_unique_crossref_array_duplicate_multiple_files() -> None:
-    bundle = get_bundle_fixture("unique_crossref_array_duplicate_multiple_files.yml")
+    bundle = get_bundle_fixture("unique", "unique_crossref_array_duplicate_multiple_files.yml")
     expected_bundle_dict = deepcopy(bundle.to_dict())
     expected_bundle_dict["schemas"]["another-schema-1.yml"]["properties"][
         "__identifier"

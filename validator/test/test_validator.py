@@ -6,7 +6,7 @@ class TestGetSchemaInfoFromPointer:
     fxt = Fixtures("get_schema_info_from_pointer")
 
     def do_fxt_test(self, fxt_path):
-        fixture = self.fxt.get_anymarkup(self.fxt.path(fxt_path))
+        fixture = self.fxt.get_anymarkup(fxt_path)
 
         obj = validator.get_schema_info_from_pointer(
             fixture["schema"], fixture["ptr"], fixture.get("schemas_bundle", {})

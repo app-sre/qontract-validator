@@ -2,21 +2,12 @@ import pytest
 
 from validator.bundle import Bundle
 from validator.postprocess import postprocess_bundle
-from validator.test.fixtures import Fixtures
+from validator.test.fixtures import get_bundle_fixture
 
 
-@pytest.fixture(params=["bundle.yml"])
+@pytest.fixture
 def bundle(request) -> Bundle:
-    fxt = Fixtures("backref")
-    fixture = fxt.get_anymarkup(fxt.path(request.param))
-    return Bundle(
-        git_commit="c",
-        git_commit_timestamp="t",
-        schemas=fixture["schemas"],
-        graphql=fixture["graphql"],
-        data=fixture["data"],
-        resources=fixture["resources"],
-    )
+    return get_bundle_fixture("backref", "bundle.yml")
 
 
 def test_simple_refs(bundle: Bundle):
