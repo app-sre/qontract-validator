@@ -165,8 +165,10 @@ graphql:
   - name: Query
     fields:
     - type: Schema_v1
+      name: schema_v1
       datafileSchema: "schema-1.yml"
     - type: AnotherSchema_v1
+      name: another_schema_v1
       datafileSchema: "another-schema-1.yml"
 
 data:

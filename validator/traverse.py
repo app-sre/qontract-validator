@@ -33,6 +33,9 @@ def _next_graphql_field(
     if node.graphql_name is None:
         return None, None
     graphql_field = node.graphql_field
+    # skip resolve for crossref fields
+    if field_name == "$ref":
+        return node.graphql_name, graphql_field
     if graphql_field is None:
         return node.graphql_name, node.bundle.graphql_lookup.get_field(
             node.graphql_name,
@@ -53,6 +56,9 @@ def _next_schema(
 ) -> tuple[str | None, Any]:
     if node.schema_path is None or node.schema is None:
         return None, None
+    # skip resolve crossref fields
+    if "$schemaRef" in node.schema:
+        return node.schema_path, node.schema
     if ref := node.schema.get("$ref"):
         new_schema_path = ref
         schema = node.bundle.schemas.get(ref)

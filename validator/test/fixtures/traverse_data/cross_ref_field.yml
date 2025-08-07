@@ -1,20 +1,9 @@
 schemas:
   "schema-1.yml":
     properties:
-      ref_field:
-        "$ref": "another-schema-1.yml"
-      ref_array:
-        type: array
-        items:
-          "$ref": "another-schema-1.yml"
       crossref_field:
         "$ref": "/common-1.json#/definitions/crossref"
         "$schemaRef": "another-schema-1.yml"
-      crossref_array:
-        type: array
-        items:
-          "$ref": "/common-1.json#/definitions/crossref"
-          "$schemaRef": "another-schema-1.yml"
   "another-schema-1.yml":
     properties:
       simple_field:
@@ -24,21 +13,13 @@ graphql:
   confs:
   - name: Schema_v1
     fields:
-    - name: ref_field
-      type: AnotherSchema_v1
-    - name: ref_array
-      type: AnotherSchema_v1
-      isList: true
     - name: crossref_field
       type: AnotherSchema_v1
-    - name: crossref_array
-      type: AnotherSchema_v1
-      isList: true
   - name: AnotherSchema_v1
+    datafile: "another-schema-1.yml"
     fields:
     - name: simple_field
       type: string
-      isUnique: true
   - name: Query
     fields:
     - type: Schema_v1
@@ -47,14 +28,8 @@ graphql:
 data:
   file-1-schema-1.yml:
     $schema: schema-1.yml
-    ref_field:
-      simple_field: bla
-    ref_array:
-    - simple_field: bla
     crossref_field:
       $ref: file-2-another-schema-1.yml
-    crossref_array:
-    - $ref: file-2-another-schema-1.yml
   file-2-another-schema-1.yml:
     $schema: another-schema-1.yml
     simple_field: bla
