@@ -26,19 +26,32 @@ class Node:
         )
 
 
+def _next_graphql_field(
+    node: Node,
+    field_name: str,
+) -> tuple[str | None, GraphqlField | None]:
+    if node.graphql_name is None:
+        return None, None
+    graphql_field = node.graphql_field
+    if graphql_field is None:
+        return node.graphql_name, node.bundle.graphql_lookup.get_field(
+            node.graphql_name,
+            field_name,
+        )
+    new_graphql_name = graphql_field.get("type")
+    if new_graphql_name is None:
+        return None, None
+    return new_graphql_name, node.bundle.graphql_lookup.get_field(
+        new_graphql_name,
+        field_name,
+    )
+
+
 def _next_dict_node(node: Node, key: str, value: Any) -> Node | None:
     if key == "$schema":
         return None
-    if node.graphql_name:
-        graphql_field = node.bundle.graphql_lookup.get_field(
-            node.graphql_name,
-            key,
-        )
-        graphql_field_name = graphql_field["name"] if graphql_field else None
-        graphql_name = node.graphql_name
-    else:
-        graphql_name = None
-        graphql_field_name = None
+    graphql_name, graphql_field = _next_graphql_field(node, key)
+    graphql_field_name = graphql_field.get("name") if graphql_field else None
     if node.schema_path and node.schema:
         schema = node.schema.get("properties", {}).get(key)
     else:

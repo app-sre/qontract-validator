@@ -14,7 +14,9 @@ def test_traverse_data_simple_field() -> None:
             data="bla",
             graphql_field_name="simple_field",
             graphql_name="Schema_v1",
-            jsonpaths=[JSONPathField("simple_field")],
+            jsonpaths=[
+                JSONPathField("simple_field"),
+            ],
             path="file-1-schema-1.yml",
             schema={"type": "string"},
             schema_path="schema-1.yml",
@@ -33,7 +35,32 @@ def test_traverse_data_array_field() -> None:
             data="bla",
             graphql_field_name="array_field",
             graphql_name="Schema_v1",
-            jsonpaths=[JSONPathField("array_field"), JSONPathIndex(0)],
+            jsonpaths=[
+                JSONPathField("array_field"),
+                JSONPathIndex(0),
+            ],
+            path="file-1-schema-1.yml",
+            schema={"type": "string"},
+            schema_path="schema-1.yml",
+        )
+    ]
+
+
+def test_traverse_data_simple_object_field() -> None:
+    bundle = get_bundle_fixture("traverse_data", "simple_object_field.yml")
+
+    nodes = list(traverse_data(bundle))
+
+    assert nodes == [
+        Node(
+            bundle=bundle,
+            data="bla",
+            graphql_field_name="simple_nested_field",
+            graphql_name="SimpleObject_v1",
+            jsonpaths=[
+                JSONPathField("simple_object"),
+                JSONPathField("simple_nested_field"),
+            ],
             path="file-1-schema-1.yml",
             schema={"type": "string"},
             schema_path="schema-1.yml",
