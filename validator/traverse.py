@@ -47,15 +47,30 @@ def _next_graphql_field(
     )
 
 
+def _next_schema(
+    node: Node,
+    key: str,
+) -> tuple[str | None, Any]:
+    if node.schema_path is None or node.schema is None:
+        return None, None
+    if ref := node.schema.get("$ref"):
+        new_schema_path = ref
+        schema = node.bundle.schemas.get(ref)
+    else:
+        new_schema_path = node.schema_path
+        schema = node.schema
+    if schema is None:
+        return None, None
+    new_schema = schema.get("properties", {}).get(key)
+    return new_schema_path, new_schema
+
+
 def _next_dict_node(node: Node, key: str, value: Any) -> Node | None:
     if key == "$schema":
         return None
     graphql_name, graphql_field = _next_graphql_field(node, key)
     graphql_field_name = graphql_field.get("name") if graphql_field else None
-    if node.schema_path and node.schema:
-        schema = node.schema.get("properties", {}).get(key)
-    else:
-        schema = None
+    schema_path, schema = _next_schema(node, key)
     return Node(
         bundle=node.bundle,
         data=value,
@@ -64,15 +79,12 @@ def _next_dict_node(node: Node, key: str, value: Any) -> Node | None:
         jsonpaths=node.jsonpaths + [JSONPathField(key)],
         path=node.path,
         schema=schema,
-        schema_path=node.schema_path,
+        schema_path=schema_path,
     )
 
 
 def _next_list_node(node: Node, index: int, value: Any) -> Node:
-    if node.schema_path and node.schema:
-        schema = node.schema.get("items")
-    else:
-        schema = None
+    schema = node.schema.get("items") if node.schema_path and node.schema else None
     return Node(
         bundle=node.bundle,
         data=value,

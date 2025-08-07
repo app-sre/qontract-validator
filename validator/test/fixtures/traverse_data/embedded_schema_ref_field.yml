@@ -1,0 +1,32 @@
+schemas:
+  "schema-1.yml":
+    $schema: "/metaschema-1.json"
+    properties:
+      embedded_schema_ref_field:
+        "$ref": "embedded-schema-1.yml"
+  "embedded-schema-1.yml":
+    properties:
+      simple_field:
+        type: string
+graphql:
+  $schema: "graphql-schema-1.yml"
+  confs:
+  - name: Schema_v1
+    fields:
+    - name: embedded_schema_ref_field
+      type: EmbeddedSchema_v1
+  - name: EmbeddedSchema_v1
+    fields:
+    - name: simple_field
+      type: string
+  - name: Query
+    fields:
+    - type: Schema_v1
+      name: schema_v1
+      datafileSchema: "schema-1.yml"
+data:
+  file-1-schema-1.yml:
+    $schema: schema-1.yml
+    embedded_schema_ref_field:
+      simple_field: bla
+resources: {}
