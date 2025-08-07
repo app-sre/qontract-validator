@@ -24,9 +24,9 @@ def test_ok(fixture_name: str) -> None:
     expected_bundle_dict["data"]["file-1-schema-1.yml"]["ref_array"][0][
         "__identifier"
     ] = "128ecf542a35ac5270a87dc740918404"
-    expected_bundle_dict["data"]["file-2-another-schema-1.yml"][
-        "__identifier"
-    ] = "128ecf542a35ac5270a87dc740918404"
+    expected_bundle_dict["data"]["file-2-another-schema-1.yml"]["__identifier"] = (
+        "128ecf542a35ac5270a87dc740918404"
+    )
 
     errors = postprocess_bundle(bundle)
 
@@ -54,9 +54,7 @@ def test_duplicate(fixture_name: str) -> None:
 def test_unique_duplicate() -> None:
     bundle = get_bundle_fixture("unique", "unique_duplicate.yml")
     expected_bundle_dict = deepcopy(bundle.to_dict())
-    expected_bundle_dict["schemas"]["schema-1.yml"]["properties"][
-        "__identifier"
-    ] = {
+    expected_bundle_dict["schemas"]["schema-1.yml"]["properties"]["__identifier"] = {
         "type": "string",
     }
 
@@ -82,7 +80,9 @@ def test_unique_ref_duplicate() -> None:
 
 
 def test_unique_ref_array_duplicate_multiple_files() -> None:
-    bundle = get_bundle_fixture("unique", "unique_ref_array_duplicate_multiple_files.yml")
+    bundle = get_bundle_fixture(
+        "unique", "unique_ref_array_duplicate_multiple_files.yml"
+    )
     expected_bundle_dict = deepcopy(bundle.to_dict())
     expected_bundle_dict["schemas"]["another-schema-1.yml"]["properties"][
         "__identifier"
@@ -118,16 +118,18 @@ def test_unique_crossref_duplicate() -> None:
 
 
 def test_unique_crossref_array_duplicate_multiple_files() -> None:
-    bundle = get_bundle_fixture("unique", "unique_crossref_array_duplicate_multiple_files.yml")
+    bundle = get_bundle_fixture(
+        "unique", "unique_crossref_array_duplicate_multiple_files.yml"
+    )
     expected_bundle_dict = deepcopy(bundle.to_dict())
     expected_bundle_dict["schemas"]["another-schema-1.yml"]["properties"][
         "__identifier"
     ] = {
         "type": "string",
     }
-    expected_bundle_dict["data"]["file-2-another-schema-1.yml"][
-        "__identifier"
-    ] = "128ecf542a35ac5270a87dc740918404"
+    expected_bundle_dict["data"]["file-2-another-schema-1.yml"]["__identifier"] = (
+        "128ecf542a35ac5270a87dc740918404"
+    )
 
     errors = postprocess_bundle(bundle)
 

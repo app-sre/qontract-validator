@@ -1,12 +1,16 @@
 import json
+from collections.abc import Iterable, Mapping
 from dataclasses import (
     dataclass,
     field,
 )
+from functools import cached_property
 from typing import (
     IO,
     Any,
     Optional,
+    TypedDict,
+    NotRequired,
 )
 
 
@@ -41,6 +45,50 @@ class GraphqlType:
         return None
 
 
+class InterfaceResolve(TypedDict):
+    strategy: str
+    fieldMap: NotRequired[dict[str, str]]
+    field: NotRequired[str]
+
+
+class GraphqlField(TypedDict):
+    name: str
+    type: str
+    isUnique: NotRequired[bool]
+    isContextUnique: NotRequired[bool]
+    interfaceResolve: NotRequired[InterfaceResolve]
+    datafileSchema: NotRequired[str]
+
+
+class GraphqlLookup:
+    def __init__(self, confs: list[Mapping[str, Any]]):
+        self.confs = {
+            name: self._build_conf(conf.get("fields") or [])
+            for conf in confs
+            if (name := conf.get("name"))
+        }
+        # datafile field in conf or datafileSchema field in Query.fields
+        self.name_by_schema = {
+            datafile: name
+            for conf in confs
+            if (name := conf.get("name")) and (datafile := conf.get("datafile"))
+        } | {
+            datafileSchema: field["type"]
+            for field in self.confs.get("Query", {}).values()
+            if (datafileSchema := field.get("datafileSchema"))
+        }
+
+    @staticmethod
+    def _build_conf(fields: Iterable[GraphqlField]) -> dict[str, GraphqlField]:
+        return {name: f for f in fields if (name := f.get("name"))}
+
+    def get_field(self, name: str, field_name: str) -> GraphqlField | None:
+        return self.confs.get(name, {}).get(field_name)
+
+    def get_name(self, schema: str) -> str | None:
+        return self.name_by_schema.get(schema)
+
+
 @dataclass
 class Bundle:
     graphql: list[dict[str, Any]] | dict[str, Any]
@@ -53,6 +101,13 @@ class Bundle:
     _schema_to_graphql_type: dict[str, GraphqlType] = field(init=False)
     _top_level_schemas: set[str] = field(init=False)
     _graphql_type_by_name: dict[str, GraphqlType] = field(init=False)
+
+    @cached_property
+    def graphql_lookup(self) -> GraphqlLookup:
+        confs = (
+            self.graphql["confs"] if isinstance(self.graphql, dict) else self.graphql
+        )
+        return GraphqlLookup(confs)
 
     def __post_init__(self):  # noqa: D105
         if isinstance(self.graphql, dict) and (

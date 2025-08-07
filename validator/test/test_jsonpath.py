@@ -1,4 +1,9 @@
-from validator.jsonpath import JSONPathField, JSONPathIndex, build_jsonpath, read_jsonpath
+from validator.jsonpath import (
+    JSONPathField,
+    JSONPathIndex,
+    build_jsonpath,
+    read_jsonpath,
+)
 
 
 def test_build_jsonpath() -> None:

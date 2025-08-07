@@ -47,6 +47,7 @@ def build_jsonpath(jsonpaths: Iterable[JSONPath]) -> str:
     """
     return ".".join(path.to_expression() for path in jsonpaths)
 
+
 def read_jsonpath(data: Any, jsonpaths: Iterable[JSONPath]) -> Any:
     """
     Read data from a JSON object using a list of JsonPath objects.
