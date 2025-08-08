@@ -1,0 +1,78 @@
+schemas:
+  "schema-1.yml":
+    properties:
+      one_of_ref_array:
+        type: array
+        items:
+          "$ref": "one-of-type-1.yml"
+  "one-of-type-1.yml":
+    properties:
+      type_field:
+        type: string
+    oneOf:
+    - properties:
+        type_field:
+          type:
+            string
+          enum:
+          - flavour-1
+        a_field:
+          "$ref": "/common-1.json#/definitions/resourceref"
+    - properties:
+        type_field:
+          type:
+            string
+          enum:
+          - flavour-2
+        a_field:
+          type: string
+graphql:
+  $schema: "graphql-schema-1.yml"
+  confs:
+  - name: Schema_v1
+    fields:
+    - name: one_of_ref_array
+      type: OneOfType_v1
+      isList: true
+  - name: OneOfType_v1
+    isInterface: true
+    interfaceResolve:
+      strategy: fieldMap
+      field: type_field
+      fieldMap:
+        flavour-1: SubType_v1
+        flavour-2: SubType_v2
+    fields:
+    - name: type_field
+      type: string
+  - name: SubType_v1
+    interface: OneOfType_v1
+    fields:
+    - name: type_field
+      type: string
+    - name: a_field
+      type: string
+      isResource: true
+  - name: SubType_v2
+    interface: OneOfType_v1
+    fields:
+    - name: type_field
+      type: string
+    - name: a_field
+      type: string
+  - name: Query
+    fields:
+    - type: Schema_v1
+      name: schema_v1
+      datafileSchema: "schema-1.yml"
+data:
+  file-1-schema-1.yml:
+    $schema: schema-1.yml
+    one_of_ref_array:
+    - type_field: flavour-1
+      a_field: /resource-1.yml
+    - type_field: flavour-2
+      a_field: bla
+resources:
+  /resource-1.yml:
+    backrefs: []
