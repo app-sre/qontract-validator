@@ -113,8 +113,45 @@ def test_traverse_data_embedded_schema_ref_field() -> None:
     ]
 
 
-def test_traverse_data_cross_ref_field() -> None:
-    bundle = get_bundle_fixture("traverse_data", "cross_ref_field.yml")
+def test_traverse_data_crossref_field() -> None:
+    bundle = get_bundle_fixture("traverse_data", "crossref_field.yml")
+
+    nodes = sorted(traverse_data(bundle), key=attrgetter("path"))
+
+    assert nodes == [
+        Node(
+            bundle=bundle,
+            data="file-2-another-schema-1.yml",
+            graphql_field_name="crossref_field",
+            graphql_type_name="Schema_v1",
+            jsonpaths=[
+                JSONPathField("crossref_field"),
+                JSONPathField("$ref"),
+            ],
+            path="file-1-schema-1.yml",
+            schema={
+                "$ref": "/common-1.json#/definitions/crossref",
+                "$schemaRef": "another-schema-1.yml",
+            },
+            schema_path="schema-1.yml",
+        ),
+        Node(
+            bundle=bundle,
+            data="bla",
+            graphql_field_name="simple_field",
+            graphql_type_name="AnotherSchema_v1",
+            jsonpaths=[
+                JSONPathField("simple_field"),
+            ],
+            path="file-2-another-schema-1.yml",
+            schema={"type": "string"},
+            schema_path="another-schema-1.yml",
+        ),
+    ]
+
+
+def test_traverse_data_crossref_interface_schema_field() -> None:
+    bundle = get_bundle_fixture("traverse_data", "crossref_interface_schema_field.yml")
 
     nodes = sorted(traverse_data(bundle), key=attrgetter("path"))
 

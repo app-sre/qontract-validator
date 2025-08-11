@@ -85,20 +85,14 @@ def _next_dict_node(node: Node, key: str, value: Any) -> Node | None:
     new_schema_path, new_schema = _resolve_schema(
         node.schema_path, schema, node.bundle, value, graphql_field_type
     )
-    if (
-        graphql_field_type
-        and graphql_field_type.is_interface
-        and (
-            resolved_graphql := _resolve_graphql_type(
-                graphql_field_type, node.bundle, value
-            )
-        )
+    if resolved_graphql_type := _resolve_graphql_interface_type(
+        graphql_field_type, node.bundle, value
     ):
         return Node(
             bundle=node.bundle,
             data=value,
             graphql_field_name=None,
-            graphql_type_name=resolved_graphql.name,
+            graphql_type_name=resolved_graphql_type.name,
             jsonpaths=jsonpaths,
             path=node.path,
             schema=new_schema,
@@ -130,18 +124,14 @@ def _next_list_node(node: Node, index: int, value: Any) -> Node:
     new_schema_path, new_schema = _resolve_schema(
         node.schema_path, schema, node.bundle, value, graphql_type
     )
-    if (
-        graphql_type
-        and graphql_type.is_interface
-        and (
-            resolved_graphql := _resolve_graphql_type(graphql_type, node.bundle, value)
-        )
+    if resolved_graphql_type := _resolve_graphql_interface_type(
+        graphql_type, node.bundle, value
     ):
         return Node(
             bundle=node.bundle,
             data=value,
             graphql_field_name=None,
-            graphql_type_name=resolved_graphql.name,
+            graphql_type_name=resolved_graphql_type.name,
             jsonpaths=jsonpaths,
             path=node.path,
             schema=new_schema,
@@ -159,27 +149,16 @@ def _next_list_node(node: Node, index: int, value: Any) -> Node:
     )
 
 
-def _resolve_graphql_type(
-    graphql_type: GraphqlTypeV2,
+def _resolve_graphql_interface_type(
+    graphql_type: GraphqlTypeV2 | None,
     bundle: Bundle,
     data: Any,
 ) -> GraphqlTypeV2 | None:
-    if not graphql_type.is_interface or not graphql_type.interface_resolve:
-        return graphql_type
-    match graphql_type.interface_resolve.get("strategy"):
-        case "fieldMap":
-            field = graphql_type.interface_resolve.get("field")
-            field_map = graphql_type.interface_resolve.get("fieldMap") or {}
-            if (
-                field
-                and isinstance(data, dict)
-                and (field_value := data.get(field))
-                and (name := field_map.get(field_value))
-            ):
-                return bundle.graphql_lookup.get_by_type_name(name)
-            return None
-        case _:
-            return None
+    if graphql_type is None or not graphql_type.is_interface:
+        return None
+    if name := graphql_type.resolve_interface_type_name(data):
+        return bundle.graphql_lookup.get_by_type_name(name)
+    return None
 
 
 def _resolve_schema(
@@ -208,9 +187,8 @@ def _resolve_schema(
     if (
         "oneOf" in schema
         and graphql_type
-        and graphql_type.interface_resolve
-        and (field := graphql_type.interface_resolve.get("field"))
-        and (field_value := data.get(field))
+        and (field := graphql_type.interface_resolve_field_name())
+        and (field_value := graphql_type.resolve_interface_field_value(data))
     ):
         new_schema = next(
             (
@@ -245,16 +223,11 @@ def traverse_data(bundle: Bundle) -> Iterator[Node]:
         datafile_schema = datafile.get("$schema")
         schema = bundle.schemas.get(datafile_schema, {}) if datafile_schema else None
         graphql_type_name = (
-            resolved_graphql_type.name
+            graphql_type.name
             if (
                 datafile_schema
                 and (
                     graphql_type := bundle.graphql_lookup.get_by_schema(datafile_schema)
-                )
-                and (
-                    resolved_graphql_type := _resolve_graphql_type(
-                        graphql_type, bundle, datafile
-                    )
                 )
             )
             else None

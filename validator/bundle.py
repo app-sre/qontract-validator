@@ -70,6 +70,34 @@ class GraphqlTypeV2:
     def get_field(self, field_name: str) -> GraphqlField | None:
         return self.fields.get(field_name)
 
+    def is_interface_field_map(self) -> bool:
+        return (
+            self.is_interface
+            and self.interface_resolve is not None
+            and self.interface_resolve.get("strategy") == "fieldMap"
+        )
+
+    def interface_resolve_field_name(self) -> str | None:
+        if self.is_interface_field_map() and self.interface_resolve:
+            return self.interface_resolve.get("field")
+        return None
+
+    def resolve_interface_field_value(self, data: Any) -> Any:
+        if (field_name := self.interface_resolve_field_name()) and isinstance(
+            data, dict
+        ):
+            return data.get(field_name)
+        return None
+
+    def resolve_interface_type_name(self, data: Any) -> str | None:
+        if (
+            self.interface_resolve
+            and (field_map := self.interface_resolve.get("fieldMap"))
+            and (field_value := self.resolve_interface_field_value(data))
+        ):
+            return field_map.get(field_value)
+        return None
+
 
 class GraphqlLookup:
     def __init__(self, confs: list[dict[str, Any]]):
