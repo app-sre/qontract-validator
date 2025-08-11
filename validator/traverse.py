@@ -25,73 +25,97 @@ class Node:
 
     @property
     def graphql_field(self) -> GraphqlField | None:
-        if self.graphql_type_name is None or self.graphql_field_name is None:
+        if self.graphql_field_name is None:
             return None
-        return self.bundle.graphql_lookup.get_field(
-            self.graphql_type_name, self.graphql_field_name
-        )
+        if graphql_type := self.graphql_type:
+            return graphql_type.get_field(self.graphql_field_name)
+        return None
 
 
-def _next_graphql_field(
+def _next_dict_graphql(
     node: Node,
     field_name: str,
-) -> tuple[str | None, GraphqlField | None]:
-    if node.graphql_type_name is None:
+) -> tuple[GraphqlTypeV2 | None, GraphqlField | None]:
+    graphql_type = node.graphql_type
+    if graphql_type is None:
         return None, None
     graphql_field = node.graphql_field
-    # skip resolve for crossref fields
+
     if field_name == "$ref":
-        return node.graphql_type_name, graphql_field
+        # skip resolve for crossref fields
+        return graphql_type, graphql_field
+
     if graphql_field is None:
-        return node.graphql_type_name, node.bundle.graphql_lookup.get_field(
-            node.graphql_type_name,
-            field_name,
+        # pick the field from the current type
+        return graphql_type, graphql_type.get_field(field_name)
+
+    # current field is pointing to another type
+    if (new_graphql_type_name := graphql_field.get("type")) and (
+        new_graphql_type := node.bundle.graphql_lookup.get_by_type_name(
+            new_graphql_type_name
         )
-    new_graphql_name = graphql_field.get("type")
-    if new_graphql_name is None:
-        return None, None
-    return new_graphql_name, node.bundle.graphql_lookup.get_field(
-        new_graphql_name,
-        field_name,
-    )
+    ):
+        return new_graphql_type, new_graphql_type.get_field(field_name)
+    return None, None
 
 
-def _next_schema(
+def _next_dict_schema(
     node: Node,
     key: str,
-) -> tuple[str | None, Any]:
-    if node.schema_path is None or node.schema is None:
-        return None, None
-    # skip resolve crossref fields
-    if "$schemaRef" in node.schema:
-        return node.schema_path, node.schema
-    if ref := node.schema.get("$ref"):
-        new_schema_path = ref
-        schema = node.bundle.schemas.get(ref)
-    else:
-        new_schema_path = node.schema_path
-        schema = node.schema
-    if schema is None:
-        return None, None
-    new_schema = schema.get("properties", {}).get(key)
-    return new_schema_path, new_schema
+) -> Any:
+    if schema := node.schema:
+        if isinstance(schema, dict) and "$schemaRef" in schema:
+            # skip resolve crossref fields
+            return schema
+        return schema.get("properties", {}).get(key)
+    return None
 
 
 def _next_dict_node(node: Node, key: str, value: Any) -> Node | None:
     if key == "$schema":
         return None
-    graphql_name, graphql_field = _next_graphql_field(node, key)
+    jsonpaths = [*node.jsonpaths, JSONPathField(key)]
+    graphql_type, graphql_field = _next_dict_graphql(node, key)
+    graphql_field_type = (
+        node.bundle.graphql_lookup.get_by_type_name(graphql_field["type"])
+        if graphql_field
+        else None
+    )
+    schema = _next_dict_schema(node, key)
+    new_schema_path, new_schema = _resolve_schema(
+        node.schema_path, schema, node.bundle, value, graphql_field_type
+    )
+    if (
+        graphql_field_type
+        and graphql_field_type.is_interface
+        and (
+            resolved_graphql := _resolve_graphql_type(
+                graphql_field_type, node.bundle, value
+            )
+        )
+    ):
+        return Node(
+            bundle=node.bundle,
+            data=value,
+            graphql_field_name=None,
+            graphql_type_name=resolved_graphql.name,
+            jsonpaths=jsonpaths,
+            path=node.path,
+            schema=new_schema,
+            schema_path=new_schema_path,
+        )
+
+    graphql_type_name = graphql_type.name if graphql_type else None
     graphql_field_name = graphql_field.get("name") if graphql_field else None
-    schema_path, schema = _next_schema(node, key)
     return Node(
         bundle=node.bundle,
         data=value,
         graphql_field_name=graphql_field_name,
-        graphql_type_name=graphql_name,
-        jsonpaths=[*node.jsonpaths, JSONPathField(key)],
+        graphql_type_name=graphql_type_name,
+        jsonpaths=jsonpaths,
         path=node.path,
-        schema=schema,
-        schema_path=schema_path,
+        schema=new_schema,
+        schema_path=new_schema_path,
     )
 
 

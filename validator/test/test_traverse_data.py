@@ -215,3 +215,66 @@ def test_traverse_data_one_of_ref_array_field_map_field() -> None:
             schema_path="one-of-type-1.yml",
         ),
     ]
+
+
+def test_traverse_data_one_of_ref_field_map_field() -> None:
+    bundle = get_bundle_fixture("traverse_data", "one_of_ref_field_map_field.yml")
+
+    nodes = sorted(
+        traverse_data(bundle), key=lambda n: f"{n.path}#{build_jsonpath(n.jsonpaths)}"
+    )
+
+    assert nodes == [
+        Node(
+            bundle=bundle,
+            data="/resource-1.yml",
+            graphql_field_name="a_field",
+            graphql_type_name="SubType_v1",
+            jsonpaths=[
+                JSONPathField("one_of_ref"),
+                JSONPathField("a_field"),
+            ],
+            path="file-1-schema-1.yml",
+            schema={"$ref": "/common-1.json#/definitions/resourceref"},
+            schema_path="one-of-type-1.yml",
+        ),
+        Node(
+            bundle=bundle,
+            data="flavour-1",
+            graphql_field_name="type_field",
+            graphql_type_name="SubType_v1",
+            jsonpaths=[
+                JSONPathField("one_of_ref"),
+                JSONPathField("type_field"),
+            ],
+            path="file-1-schema-1.yml",
+            schema={"type": "string", "enum": ["flavour-1"]},
+            schema_path="one-of-type-1.yml",
+        ),
+        Node(
+            bundle=bundle,
+            data="bla",
+            graphql_field_name="a_field",
+            graphql_type_name="SubType_v2",
+            jsonpaths=[
+                JSONPathField("one_of_ref"),
+                JSONPathField("a_field"),
+            ],
+            path="file-2-schema-1.yml",
+            schema={"type": "string"},
+            schema_path="one-of-type-1.yml",
+        ),
+        Node(
+            bundle=bundle,
+            data="flavour-2",
+            graphql_field_name="type_field",
+            graphql_type_name="SubType_v2",
+            jsonpaths=[
+                JSONPathField("one_of_ref"),
+                JSONPathField("type_field"),
+            ],
+            path="file-2-schema-1.yml",
+            schema={"type": "string", "enum": ["flavour-2"]},
+            schema_path="one-of-type-1.yml",
+        ),
+    ]

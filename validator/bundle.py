@@ -67,6 +67,9 @@ class GraphqlTypeV2:
     is_interface: bool
     interface_resolve: InterfaceResolve | None
 
+    def get_field(self, field_name: str) -> GraphqlField | None:
+        return self.fields.get(field_name)
+
 
 class GraphqlLookup:
     def __init__(self, confs: list[dict[str, Any]]):
@@ -110,11 +113,6 @@ class GraphqlLookup:
 
     def get_by_type_name(self, name: str) -> GraphqlTypeV2 | None:
         return self.graphql_types.get(name)
-
-    def get_field(self, type_name: str, field_name: str) -> GraphqlField | None:
-        if graphql_type := self.get_by_type_name(type_name):
-            return graphql_type.fields.get(field_name)
-        return None
 
     def get_by_schema(self, schema: str) -> GraphqlTypeV2 | None:
         if name := self.type_name_by_schema.get(schema):
