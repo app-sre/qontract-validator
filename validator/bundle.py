@@ -106,22 +106,8 @@ class GraphqlLookup:
             for conf in confs
             if (name := conf.get("name"))
         }
-        type_name_by_type_datafile = {
-            datafile: type_name
-            for type_name, graphql_type in self.graphql_types.items()
-            if (datafile := graphql_type.datafile)
-        }
-        type_name_by_query_datafile_schema = (
-            {
-                datafile_schema: field["type"]
-                for field in query.fields.values()
-                if (datafile_schema := field.get("datafileSchema"))
-            }
-            if (query := self.graphql_types.get("Query"))
-            else {}
-        )
-        self.type_name_by_schema = (
-            type_name_by_type_datafile | type_name_by_query_datafile_schema
+        self.type_name_by_schema = self._build_type_name_by_schema(
+            graphql_types=self.graphql_types,
         )
 
     @staticmethod
@@ -138,6 +124,24 @@ class GraphqlLookup:
             is_interface=conf.get("isInterface", False),
             interface_resolve=conf.get("interfaceResolve"),
         )
+
+    @staticmethod
+    def _build_type_name_by_schema(
+        graphql_types: dict[str, GraphqlTypeV2],
+    ) -> dict[str, str]:
+        type_name_by_type_datafile = {
+            datafile: type_name
+            for type_name, graphql_type in graphql_types.items()
+            if (datafile := graphql_type.datafile)
+        }
+        if query := graphql_types.get("Query"):
+            type_name_by_query_datafile_schema = {
+                datafile_schema: field["type"]
+                for field in query.fields.values()
+                if (datafile_schema := field.get("datafileSchema"))
+            }
+            return type_name_by_type_datafile | type_name_by_query_datafile_schema
+        return type_name_by_type_datafile
 
     def get_by_type_name(self, name: str) -> GraphqlTypeV2 | None:
         return self.graphql_types.get(name)
