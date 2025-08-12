@@ -51,6 +51,7 @@ def build_jsonpath(jsonpaths: Iterable[JSONPath]) -> str:
 def read_jsonpath(data: Any, jsonpaths: Iterable[JSONPath]) -> Any:
     """
     Read data from a JSON object using a list of JsonPath objects.
+
     Args:
         data (Any): The JSON object to read from.
         jsonpaths (Iterable[JSONPath]): An iterable of JsonPath objects.

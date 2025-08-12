@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from copy import deepcopy
 
 import pytest
 
