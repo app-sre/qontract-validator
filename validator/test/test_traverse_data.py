@@ -1,340 +1,67 @@
 from collections.abc import Callable
-from operator import attrgetter
+from typing import Any
+
+import pytest
 
 from validator.bundle import Bundle
 from validator.jsonpath import JSONPathField, JSONPathIndex, build_jsonpath
 from validator.traverse import Node, traverse_data
 
 
-def test_traverse_data_simple_field(
-    bundle_fixture_factory: Callable[[str, str], Bundle],
+@pytest.fixture
+def bundle_and_expected_nodes_factory(
+    fixture_factory: Callable[[str, str], Any],
+    bundle_factory: Callable[[dict[str, Any]], Bundle],
+) -> Callable[[str, str], tuple[Bundle, list[Node]]]:
+    def _bundle_and_expected_nodes_factory(
+        base_path: str, fixture: str
+    ) -> tuple[Bundle, list[Node]]:
+        fxt = fixture_factory(base_path, fixture)
+        bundle = bundle_factory(fxt)
+        expected_nodes = [
+            Node(
+                bundle=bundle,
+                data=node.get("data"),
+                graphql_field_name=node.get("graphql_field_name"),
+                graphql_type_name=node.get("graphql_type_name"),
+                jsonpaths=[
+                    (JSONPathField(p) if isinstance(p, str) else JSONPathIndex(p))
+                    for p in node.get("jsonpaths", [])
+                ],
+                path=node["path"],
+                schema=node.get("schema"),
+                schema_path=node.get("schema_path"),
+            )
+            for node in fxt.get("expected_nodes", [])
+        ]
+        return bundle, expected_nodes
+
+    return _bundle_and_expected_nodes_factory
+
+
+@pytest.mark.parametrize(
+    "fixture",
+    [
+        "array_field.yml",
+        "crossref_field.yml",
+        "crossref_interface_schema_field.yml",
+        "embedded_schema_ref_field.yml",
+        "one_of_ref_array_field_map_field.yml",
+        "one_of_ref_field_map_field.yml",
+        "simple_field.yml",
+        "simple_object_field.yml",
+        "simple_ref_field.yml",
+    ],
+)
+def test_traverse_data(
+    bundle_and_expected_nodes_factory: Callable[[str, str], tuple[Bundle, list[Node]]],
+    fixture: str,
 ) -> None:
-    bundle = bundle_fixture_factory("traverse_data", "simple_field.yml")
-
-    nodes = list(traverse_data(bundle))
-
-    assert nodes == [
-        Node(
-            bundle=bundle,
-            data="bla",
-            graphql_field_name="simple_field",
-            graphql_type_name="Schema_v1",
-            jsonpaths=[
-                JSONPathField("simple_field"),
-            ],
-            path="file-1-schema-1.yml",
-            schema={"type": "string"},
-            schema_path="schema-1.yml",
-        )
-    ]
-
-
-def test_traverse_data_array_field(
-    bundle_fixture_factory: Callable[[str, str], Bundle],
-) -> None:
-    bundle = bundle_fixture_factory("traverse_data", "array_field.yml")
-
-    nodes = list(traverse_data(bundle))
-
-    assert nodes == [
-        Node(
-            bundle=bundle,
-            data="bla",
-            graphql_field_name="array_field",
-            graphql_type_name="Schema_v1",
-            jsonpaths=[
-                JSONPathField("array_field"),
-                JSONPathIndex(0),
-            ],
-            path="file-1-schema-1.yml",
-            schema={"type": "string"},
-            schema_path="schema-1.yml",
-        )
-    ]
-
-
-def test_traverse_data_simple_object_field(
-    bundle_fixture_factory: Callable[[str, str], Bundle],
-) -> None:
-    bundle = bundle_fixture_factory("traverse_data", "simple_object_field.yml")
-
-    nodes = list(traverse_data(bundle))
-
-    assert nodes == [
-        Node(
-            bundle=bundle,
-            data="bla",
-            graphql_field_name="simple_nested_field",
-            graphql_type_name="SimpleObject_v1",
-            jsonpaths=[
-                JSONPathField("simple_object"),
-                JSONPathField("simple_nested_field"),
-            ],
-            path="file-1-schema-1.yml",
-            schema={"type": "string"},
-            schema_path="schema-1.yml",
-        )
-    ]
-
-
-def test_traverse_data_simple_ref_field(
-    bundle_fixture_factory: Callable[[str, str], Bundle],
-) -> None:
-    bundle = bundle_fixture_factory("traverse_data", "simple_ref_field.yml")
-
-    nodes = list(traverse_data(bundle))
-
-    assert nodes == [
-        Node(
-            bundle=bundle,
-            data="/resource-1.yml",
-            graphql_field_name="simple_ref",
-            graphql_type_name="Schema_v1",
-            jsonpaths=[
-                JSONPathField("simple_ref"),
-            ],
-            path="file-1-schema-1.yml",
-            schema={"$ref": "/common-1.json#/definitions/resourceref"},
-            schema_path="schema-1.yml",
-        )
-    ]
-
-
-def test_traverse_data_embedded_schema_ref_field(
-    bundle_fixture_factory: Callable[[str, str], Bundle],
-) -> None:
-    bundle = bundle_fixture_factory("traverse_data", "embedded_schema_ref_field.yml")
-
-    nodes = list(traverse_data(bundle))
-
-    assert nodes == [
-        Node(
-            bundle=bundle,
-            data="bla",
-            graphql_field_name="simple_field",
-            graphql_type_name="EmbeddedSchema_v1",
-            jsonpaths=[
-                JSONPathField("embedded_schema_ref_field"),
-                JSONPathField("simple_field"),
-            ],
-            path="file-1-schema-1.yml",
-            schema={"type": "string"},
-            schema_path="embedded-schema-1.yml",
-        )
-    ]
-
-
-def test_traverse_data_crossref_field(
-    bundle_fixture_factory: Callable[[str, str], Bundle],
-) -> None:
-    bundle = bundle_fixture_factory("traverse_data", "crossref_field.yml")
-
-    nodes = sorted(traverse_data(bundle), key=attrgetter("path"))
-
-    assert nodes == [
-        Node(
-            bundle=bundle,
-            data="file-2-another-schema-1.yml",
-            graphql_field_name="crossref_field",
-            graphql_type_name="Schema_v1",
-            jsonpaths=[
-                JSONPathField("crossref_field"),
-                JSONPathField("$ref"),
-            ],
-            path="file-1-schema-1.yml",
-            schema={
-                "$ref": "/common-1.json#/definitions/crossref",
-                "$schemaRef": "another-schema-1.yml",
-            },
-            schema_path="schema-1.yml",
-        ),
-        Node(
-            bundle=bundle,
-            data="bla",
-            graphql_field_name="simple_field",
-            graphql_type_name="AnotherSchema_v1",
-            jsonpaths=[
-                JSONPathField("simple_field"),
-            ],
-            path="file-2-another-schema-1.yml",
-            schema={"type": "string"},
-            schema_path="another-schema-1.yml",
-        ),
-    ]
-
-
-def test_traverse_data_crossref_interface_schema_field(
-    bundle_fixture_factory: Callable[[str, str], Bundle],
-) -> None:
-    bundle = bundle_fixture_factory(
-        "traverse_data", "crossref_interface_schema_field.yml"
-    )
-
-    nodes = sorted(traverse_data(bundle), key=attrgetter("path"))
-
-    assert nodes == [
-        Node(
-            bundle=bundle,
-            data="file-2-another-schema-1.yml",
-            graphql_field_name="crossref_field",
-            graphql_type_name="Schema_v1",
-            jsonpaths=[
-                JSONPathField("crossref_field"),
-                JSONPathField("$ref"),
-            ],
-            path="file-1-schema-1.yml",
-            schema={
-                "$ref": "/common-1.json#/definitions/crossref",
-                "$schemaRef": "another-schema-1.yml",
-            },
-            schema_path="schema-1.yml",
-        ),
-        Node(
-            bundle=bundle,
-            data="bla",
-            graphql_field_name="simple_field",
-            graphql_type_name="AnotherSchema_v1",
-            jsonpaths=[
-                JSONPathField("simple_field"),
-            ],
-            path="file-2-another-schema-1.yml",
-            schema={"type": "string"},
-            schema_path="another-schema-1.yml",
-        ),
-    ]
-
-
-def test_traverse_data_one_of_ref_array_field_map_field(
-    bundle_fixture_factory: Callable[[str, str], Bundle],
-) -> None:
-    bundle = bundle_fixture_factory(
-        "traverse_data", "one_of_ref_array_field_map_field.yml"
-    )
+    bundle, expected_nodes = bundle_and_expected_nodes_factory("traverse_data", fixture)
 
     nodes = sorted(
-        traverse_data(bundle), key=lambda n: f"{n.path}#{build_jsonpath(n.jsonpaths)}"
+        traverse_data(bundle),
+        key=lambda n: f"{n.path}#{build_jsonpath(n.jsonpaths)}",
     )
 
-    assert nodes == [
-        Node(
-            bundle=bundle,
-            data="/resource-1.yml",
-            graphql_field_name="a_field",
-            graphql_type_name="SubType_v1",
-            jsonpaths=[
-                JSONPathField("one_of_ref_array"),
-                JSONPathIndex(0),
-                JSONPathField("a_field"),
-            ],
-            path="file-1-schema-1.yml",
-            schema={"$ref": "/common-1.json#/definitions/resourceref"},
-            schema_path="one-of-type-1.yml",
-        ),
-        Node(
-            bundle=bundle,
-            data="flavour-1",
-            graphql_field_name="type_field",
-            graphql_type_name="SubType_v1",
-            jsonpaths=[
-                JSONPathField("one_of_ref_array"),
-                JSONPathIndex(0),
-                JSONPathField("type_field"),
-            ],
-            path="file-1-schema-1.yml",
-            schema={"type": "string", "enum": ["flavour-1"]},
-            schema_path="one-of-type-1.yml",
-        ),
-        Node(
-            bundle=bundle,
-            data="bla",
-            graphql_field_name="a_field",
-            graphql_type_name="SubType_v2",
-            jsonpaths=[
-                JSONPathField("one_of_ref_array"),
-                JSONPathIndex(1),
-                JSONPathField("a_field"),
-            ],
-            path="file-1-schema-1.yml",
-            schema={"type": "string"},
-            schema_path="one-of-type-1.yml",
-        ),
-        Node(
-            bundle=bundle,
-            data="flavour-2",
-            graphql_field_name="type_field",
-            graphql_type_name="SubType_v2",
-            jsonpaths=[
-                JSONPathField("one_of_ref_array"),
-                JSONPathIndex(1),
-                JSONPathField("type_field"),
-            ],
-            path="file-1-schema-1.yml",
-            schema={"type": "string", "enum": ["flavour-2"]},
-            schema_path="one-of-type-1.yml",
-        ),
-    ]
-
-
-def test_traverse_data_one_of_ref_field_map_field(
-    bundle_fixture_factory: Callable[[str, str], Bundle],
-) -> None:
-    bundle = bundle_fixture_factory("traverse_data", "one_of_ref_field_map_field.yml")
-
-    nodes = sorted(
-        traverse_data(bundle), key=lambda n: f"{n.path}#{build_jsonpath(n.jsonpaths)}"
-    )
-
-    assert nodes == [
-        Node(
-            bundle=bundle,
-            data="/resource-1.yml",
-            graphql_field_name="a_field",
-            graphql_type_name="SubType_v1",
-            jsonpaths=[
-                JSONPathField("one_of_ref"),
-                JSONPathField("a_field"),
-            ],
-            path="file-1-schema-1.yml",
-            schema={"$ref": "/common-1.json#/definitions/resourceref"},
-            schema_path="one-of-type-1.yml",
-        ),
-        Node(
-            bundle=bundle,
-            data="flavour-1",
-            graphql_field_name="type_field",
-            graphql_type_name="SubType_v1",
-            jsonpaths=[
-                JSONPathField("one_of_ref"),
-                JSONPathField("type_field"),
-            ],
-            path="file-1-schema-1.yml",
-            schema={"type": "string", "enum": ["flavour-1"]},
-            schema_path="one-of-type-1.yml",
-        ),
-        Node(
-            bundle=bundle,
-            data="bla",
-            graphql_field_name="a_field",
-            graphql_type_name="SubType_v2",
-            jsonpaths=[
-                JSONPathField("one_of_ref"),
-                JSONPathField("a_field"),
-            ],
-            path="file-2-schema-1.yml",
-            schema={"type": "string"},
-            schema_path="one-of-type-1.yml",
-        ),
-        Node(
-            bundle=bundle,
-            data="flavour-2",
-            graphql_field_name="type_field",
-            graphql_type_name="SubType_v2",
-            jsonpaths=[
-                JSONPathField("one_of_ref"),
-                JSONPathField("type_field"),
-            ],
-            path="file-2-schema-1.yml",
-            schema={"type": "string", "enum": ["flavour-2"]},
-            schema_path="one-of-type-1.yml",
-        ),
-    ]
+    assert nodes == expected_nodes

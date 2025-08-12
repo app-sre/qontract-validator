@@ -1,8 +1,9 @@
 schemas:
   "schema-1.yml":
-    $schema: "/metaschema-1.json"
     properties:
       simple_field:
+        type: string
+      __identifier: # +
         type: string
 graphql:
   $schema: "graphql-schema-1.yml"
@@ -11,6 +12,7 @@ graphql:
     fields:
     - name: simple_field
       type: string
+      isUnique: true
   - name: Query
     fields:
     - type: Schema_v1
@@ -20,14 +22,9 @@ data:
   file-1-schema-1.yml:
     $schema: schema-1.yml
     simple_field: bla
+    __identifier: "128ecf542a35ac5270a87dc740918404" # +
+  file-2-schema-1.yml:
+    $schema: schema-1.yml
+    simple_field: bla
+    __identifier: "128ecf542a35ac5270a87dc740918404" # +
 resources: {}
-expected_nodes:
-- data: bla
-  graphql_field_name: simple_field
-  graphql_type_name: Schema_v1
-  jsonpaths:
-  - simple_field
-  path: file-1-schema-1.yml
-  schema:
-    type: string
-  schema_path: schema-1.yml

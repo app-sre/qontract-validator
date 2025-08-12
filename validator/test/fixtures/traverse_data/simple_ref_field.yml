@@ -24,3 +24,13 @@ data:
 resources:
   /resource-1.yml:
     backrefs: []
+expected_nodes:
+- data: /resource-1.yml
+  graphql_field_name: simple_ref
+  graphql_type_name: Schema_v1
+  jsonpaths:
+  - simple_ref
+  path: file-1-schema-1.yml
+  schema:
+    $ref: /common-1.json#/definitions/resourceref
+  schema_path: schema-1.yml

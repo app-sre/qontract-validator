@@ -30,3 +30,14 @@ data:
     embedded_schema_ref_field:
       simple_field: bla
 resources: {}
+expected_nodes:
+- data: bla
+  graphql_field_name: simple_field
+  graphql_type_name: EmbeddedSchema_v1
+  jsonpaths:
+  - embedded_schema_ref_field
+  - simple_field
+  path: file-1-schema-1.yml
+  schema:
+    type: string
+  schema_path: embedded-schema-1.yml
