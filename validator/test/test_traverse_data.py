@@ -1,12 +1,15 @@
+from collections.abc import Callable
 from operator import attrgetter
 
+from validator.bundle import Bundle
 from validator.jsonpath import JSONPathField, JSONPathIndex, build_jsonpath
-from validator.test.fixtures import get_bundle_fixture
 from validator.traverse import Node, traverse_data
 
 
-def test_traverse_data_simple_field() -> None:
-    bundle = get_bundle_fixture("traverse_data", "simple_field.yml")
+def test_traverse_data_simple_field(
+    bundle_fixture_factory: Callable[[str, str], Bundle],
+) -> None:
+    bundle = bundle_fixture_factory("traverse_data", "simple_field.yml")
 
     nodes = list(traverse_data(bundle))
 
@@ -26,8 +29,10 @@ def test_traverse_data_simple_field() -> None:
     ]
 
 
-def test_traverse_data_array_field() -> None:
-    bundle = get_bundle_fixture("traverse_data", "array_field.yml")
+def test_traverse_data_array_field(
+    bundle_fixture_factory: Callable[[str, str], Bundle],
+) -> None:
+    bundle = bundle_fixture_factory("traverse_data", "array_field.yml")
 
     nodes = list(traverse_data(bundle))
 
@@ -48,8 +53,10 @@ def test_traverse_data_array_field() -> None:
     ]
 
 
-def test_traverse_data_simple_object_field() -> None:
-    bundle = get_bundle_fixture("traverse_data", "simple_object_field.yml")
+def test_traverse_data_simple_object_field(
+    bundle_fixture_factory: Callable[[str, str], Bundle],
+) -> None:
+    bundle = bundle_fixture_factory("traverse_data", "simple_object_field.yml")
 
     nodes = list(traverse_data(bundle))
 
@@ -70,8 +77,10 @@ def test_traverse_data_simple_object_field() -> None:
     ]
 
 
-def test_traverse_data_simple_ref_field() -> None:
-    bundle = get_bundle_fixture("traverse_data", "simple_ref_field.yml")
+def test_traverse_data_simple_ref_field(
+    bundle_fixture_factory: Callable[[str, str], Bundle],
+) -> None:
+    bundle = bundle_fixture_factory("traverse_data", "simple_ref_field.yml")
 
     nodes = list(traverse_data(bundle))
 
@@ -91,8 +100,10 @@ def test_traverse_data_simple_ref_field() -> None:
     ]
 
 
-def test_traverse_data_embedded_schema_ref_field() -> None:
-    bundle = get_bundle_fixture("traverse_data", "embedded_schema_ref_field.yml")
+def test_traverse_data_embedded_schema_ref_field(
+    bundle_fixture_factory: Callable[[str, str], Bundle],
+) -> None:
+    bundle = bundle_fixture_factory("traverse_data", "embedded_schema_ref_field.yml")
 
     nodes = list(traverse_data(bundle))
 
@@ -113,8 +124,10 @@ def test_traverse_data_embedded_schema_ref_field() -> None:
     ]
 
 
-def test_traverse_data_crossref_field() -> None:
-    bundle = get_bundle_fixture("traverse_data", "crossref_field.yml")
+def test_traverse_data_crossref_field(
+    bundle_fixture_factory: Callable[[str, str], Bundle],
+) -> None:
+    bundle = bundle_fixture_factory("traverse_data", "crossref_field.yml")
 
     nodes = sorted(traverse_data(bundle), key=attrgetter("path"))
 
@@ -150,8 +163,12 @@ def test_traverse_data_crossref_field() -> None:
     ]
 
 
-def test_traverse_data_crossref_interface_schema_field() -> None:
-    bundle = get_bundle_fixture("traverse_data", "crossref_interface_schema_field.yml")
+def test_traverse_data_crossref_interface_schema_field(
+    bundle_fixture_factory: Callable[[str, str], Bundle],
+) -> None:
+    bundle = bundle_fixture_factory(
+        "traverse_data", "crossref_interface_schema_field.yml"
+    )
 
     nodes = sorted(traverse_data(bundle), key=attrgetter("path"))
 
@@ -187,8 +204,12 @@ def test_traverse_data_crossref_interface_schema_field() -> None:
     ]
 
 
-def test_traverse_data_one_of_ref_array_field_map_field() -> None:
-    bundle = get_bundle_fixture("traverse_data", "one_of_ref_array_field_map_field.yml")
+def test_traverse_data_one_of_ref_array_field_map_field(
+    bundle_fixture_factory: Callable[[str, str], Bundle],
+) -> None:
+    bundle = bundle_fixture_factory(
+        "traverse_data", "one_of_ref_array_field_map_field.yml"
+    )
 
     nodes = sorted(
         traverse_data(bundle), key=lambda n: f"{n.path}#{build_jsonpath(n.jsonpaths)}"
@@ -254,8 +275,10 @@ def test_traverse_data_one_of_ref_array_field_map_field() -> None:
     ]
 
 
-def test_traverse_data_one_of_ref_field_map_field() -> None:
-    bundle = get_bundle_fixture("traverse_data", "one_of_ref_field_map_field.yml")
+def test_traverse_data_one_of_ref_field_map_field(
+    bundle_fixture_factory: Callable[[str, str], Bundle],
+) -> None:
+    bundle = bundle_fixture_factory("traverse_data", "one_of_ref_field_map_field.yml")
 
     nodes = sorted(
         traverse_data(bundle), key=lambda n: f"{n.path}#{build_jsonpath(n.jsonpaths)}"

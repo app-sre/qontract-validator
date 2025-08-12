@@ -1,13 +1,16 @@
+from collections.abc import Callable
+
 import pytest
 
 from validator.bundle import Bundle
 from validator.postprocess import postprocess_bundle
-from validator.test.fixtures import get_bundle_fixture
 
 
 @pytest.fixture
-def bundle(request) -> Bundle:
-    return get_bundle_fixture("backref", "bundle.yml")
+def bundle(
+    bundle_fixture_factory: Callable[[str, str], Bundle],
+) -> Bundle:
+    return bundle_fixture_factory("backref", "bundle.yml")
 
 
 def test_simple_refs(bundle: Bundle):
