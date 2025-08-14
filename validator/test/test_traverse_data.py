@@ -12,7 +12,9 @@ from validator.traverse import Node, traverse_data
 
 
 def parse_node(node: dict[str, Any], bundle: Bundle) -> Node:
-    parent = parse_node(node.get("parent"), bundle) if node.get("parent") else None
+    parent = (
+        parse_node(parent_node, bundle) if (parent_node := node.get("parent")) else None
+    )
     return Node(
         bundle=bundle,
         data=node.get("data"),
@@ -38,8 +40,7 @@ def bundle_and_expected_nodes_factory(
         fxt = fixture_factory(base_path, fixture)
         bundle = bundle_factory(fxt)
         expected_nodes = [
-            parse_node(node, bundle)
-            for node in fxt.get("expected_nodes", [])
+            parse_node(node, bundle) for node in fxt.get("expected_nodes", [])
         ]
         return bundle, expected_nodes
 

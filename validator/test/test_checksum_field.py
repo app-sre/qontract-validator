@@ -3,7 +3,7 @@ from collections.abc import Callable
 import pytest
 
 from validator.bundle import Bundle
-from validator.postprocess import postprocess_bundle
+from validator.postprocess_v2 import postprocess_bundle
 
 
 @pytest.mark.parametrize(

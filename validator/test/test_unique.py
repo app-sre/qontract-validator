@@ -3,7 +3,7 @@ from collections.abc import Callable
 import pytest
 
 from validator.bundle import Bundle
-from validator.postprocess import postprocess_bundle
+from validator.postprocess_v2 import postprocess_bundle
 
 
 @pytest.mark.parametrize(
@@ -27,19 +27,19 @@ from validator.postprocess import postprocess_bundle
         ),
         (
             "context_unique_crossref_array_duplicate.yml",
-            "context_unique_crossref_array_duplicate.expected.yml",
+            "context_unique_crossref_array_duplicate.yml",
         ),
         (
             "unique_crossref_array_duplicate.yml",
-            "unique_crossref_array_duplicate.expected.yml",
+            "unique_crossref_array_duplicate.yml",
         ),
         (
             "unique_duplicate.yml",
-            "unique_duplicate.expected.yml",
+            "unique_duplicate.yml",
         ),
         (
             "unique_ref_duplicate.yml",
-            "unique_ref_duplicate.expected.yml",
+            "unique_ref_duplicate.yml",
         ),
         (
             "unique_ref_array_duplicate_multiple_files.yml",
@@ -47,11 +47,11 @@ from validator.postprocess import postprocess_bundle
         ),
         (
             "unique_crossref_duplicate.yml",
-            "unique_crossref_duplicate.expected.yml",
+            "unique_crossref_duplicate.yml",
         ),
         (
             "unique_crossref_array_duplicate_multiple_files.yml",
-            "unique_crossref_array_duplicate_multiple_files.expected.yml",
+            "unique_crossref_array_duplicate_multiple_files.yml",
         ),
     ],
 )
