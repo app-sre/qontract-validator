@@ -26,8 +26,7 @@ expected_nodes:
   file_schema_path: schema-1.yml
   graphql_field_name: simple_field
   graphql_type_name: Schema_v1
-  jsonpaths:
-  - simple_field
+  jsonpath: simple_field
   path: file-1-schema-1.yml
   schema:
     type: string

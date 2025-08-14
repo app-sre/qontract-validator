@@ -62,3 +62,20 @@ def read_jsonpath(data: Any, jsonpaths: Iterable[JSONPath]) -> Any:
     for path in jsonpaths:
         result = path.read(result)
     return result
+
+
+def parse_jsonpath(jsonpath: str) -> list[JSONPath]:
+    """
+    Parse a JSONPath string into a list of JSONPath objects.
+
+    Args:
+        jsonpath (str): The JSONPath string to parse.
+    Returns:
+        list[JSONPath]: A list of JSONPath objects representing the parsed path.
+    """
+    return [
+        JSONPathIndex(int(part[1:-1]))
+        if part.startswith("[") and part.endswith("]")
+        else JSONPathField(part)
+        for part in jsonpath.split(".")
+    ]

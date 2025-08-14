@@ -39,9 +39,7 @@ expected_nodes:
   file_schema_path: schema-1.yml
   graphql_field_name: crossref_field
   graphql_type_name: Schema_v1
-  jsonpaths:
-  - crossref_field
-  - $ref
+  jsonpath: crossref_field.$ref
   path: file-1-schema-1.yml
   schema:
     $ref: /common-1.json#/definitions/crossref
@@ -51,8 +49,7 @@ expected_nodes:
   file_schema_path: another-schema-1.yml
   graphql_field_name: simple_field
   graphql_type_name: AnotherSchema_v1
-  jsonpaths:
-  - simple_field
+  jsonpath: simple_field
   path: file-2-another-schema-1.yml
   schema:
     type: string

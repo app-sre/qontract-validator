@@ -30,9 +30,7 @@ expected_nodes:
   file_schema_path: schema-1.yml
   graphql_field_name: array_field
   graphql_type_name: Schema_v1
-  jsonpaths:
-  - array_field
-  - 0
+  jsonpath: array_field.[0]
   path: file-1-schema-1.yml
   schema:
     type: string

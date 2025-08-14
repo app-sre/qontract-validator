@@ -34,9 +34,7 @@ expected_nodes:
   file_schema_path: schema-1.yml
   graphql_field_name: simple_nested_field
   graphql_type_name: SimpleObject_v1
-  jsonpaths:
-  - simple_object
-  - simple_nested_field
+  jsonpath: simple_object.simple_nested_field
   path: file-1-schema-1.yml
   schema:
     type: string

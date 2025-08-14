@@ -81,10 +81,7 @@ expected_nodes:
   file_schema_path: schema-1.yml
   graphql_field_name: a_field
   graphql_type_name: SubType_v1
-  jsonpaths:
-  - one_of_ref_array
-  - 0
-  - a_field
+  jsonpath: one_of_ref_array.[0].a_field
   path: file-1-schema-1.yml
   schema:
     $ref: /common-1.json#/definitions/resourceref
@@ -93,10 +90,7 @@ expected_nodes:
   file_schema_path: schema-1.yml
   graphql_field_name: type_field
   graphql_type_name: SubType_v1
-  jsonpaths:
-  - one_of_ref_array
-  - 0
-  - type_field
+  jsonpath: one_of_ref_array.[0].type_field
   path: file-1-schema-1.yml
   schema:
     type: string
@@ -107,10 +101,7 @@ expected_nodes:
   file_schema_path: schema-1.yml
   graphql_field_name: a_field
   graphql_type_name: SubType_v2
-  jsonpaths:
-  - one_of_ref_array
-  - 1
-  - a_field
+  jsonpath: one_of_ref_array.[1].a_field
   path: file-1-schema-1.yml
   schema:
     type: string
@@ -119,10 +110,7 @@ expected_nodes:
   file_schema_path: schema-1.yml
   graphql_field_name: type_field
   graphql_type_name: SubType_v2
-  jsonpaths:
-  - one_of_ref_array
-  - 1
-  - type_field
+  jsonpath: one_of_ref_array.[1].type_field
   path: file-1-schema-1.yml
   schema:
     type: string

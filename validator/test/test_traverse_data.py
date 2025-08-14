@@ -4,7 +4,12 @@ from typing import Any
 import pytest
 
 from validator.bundle import Bundle
-from validator.jsonpath import JSONPathField, JSONPathIndex, build_jsonpath
+from validator.jsonpath import (
+    JSONPathField,
+    JSONPathIndex,
+    build_jsonpath,
+    parse_jsonpath,
+)
 from validator.traverse import Node, traverse_data
 
 
@@ -25,10 +30,7 @@ def bundle_and_expected_nodes_factory(
                 file_schema_path=node.get("file_schema_path"),
                 graphql_field_name=node.get("graphql_field_name"),
                 graphql_type_name=node.get("graphql_type_name"),
-                jsonpaths=[
-                    (JSONPathField(p) if isinstance(p, str) else JSONPathIndex(p))
-                    for p in node.get("jsonpaths", [])
-                ],
+                jsonpaths=parse_jsonpath(node.get("jsonpath", "")),
                 path=node["path"],
                 schema=node.get("schema"),
                 schema_path=node.get("schema_path"),
