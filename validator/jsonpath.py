@@ -73,6 +73,8 @@ def parse_jsonpath(jsonpath: str) -> list[JSONPath]:
     Returns:
         list[JSONPath]: A list of JSONPath objects representing the parsed path.
     """
+    if not jsonpath:
+        return []
     return [
         JSONPathIndex(int(part[1:-1]))
         if part.startswith("[") and part.endswith("]")

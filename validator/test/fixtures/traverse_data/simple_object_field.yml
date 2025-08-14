@@ -39,3 +39,34 @@ expected_nodes:
   schema:
     type: string
   schema_path: schema-1.yml
+  parent:
+    data:
+      simple_nested_field: bla
+    file_schema_path: schema-1.yml
+    graphql_field_name: simple_object
+    graphql_type_name: Schema_v1
+    jsonpath: simple_object
+    path: file-1-schema-1.yml
+    schema:
+      type: object
+      properties:
+        simple_nested_field:
+          type: string
+    schema_path: schema-1.yml
+    parent:
+      data:
+        $schema: schema-1.yml
+        simple_object:
+          simple_nested_field: bla
+      file_schema_path: schema-1.yml
+      graphql_type_name: Schema_v1
+      path: file-1-schema-1.yml
+      schema:
+        $schema: "/metaschema-1.json"
+        properties:
+          simple_object:
+            type: object
+            properties:
+              simple_nested_field:
+                type: string
+      schema_path: schema-1.yml

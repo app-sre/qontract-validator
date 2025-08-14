@@ -1,6 +1,6 @@
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Self
 
 from validator.bundle import Bundle, GraphqlField, GraphqlTypeV2
 from validator.jsonpath import JSONPath, JSONPathField, JSONPathIndex
@@ -17,6 +17,7 @@ class Node:
     path: str
     schema: Any
     schema_path: str | None
+    parent: Self | None
 
     @property
     def graphql_type(self) -> GraphqlTypeV2 | None:
@@ -67,6 +68,7 @@ def traverse_data(bundle: Bundle) -> Iterator[Node]:
             path=datafile_path,
             schema=schema,
             schema_path=datafile_schema,
+            parent=None,
         )
         yield from _traverse_node(node)
 
@@ -221,6 +223,7 @@ def _next_node(
             path=node.path,
             schema=new_schema,
             schema_path=new_schema_path,
+            parent=node,
         )
 
     graphql_type_name = graphql_type.name if graphql_type else None
@@ -235,6 +238,7 @@ def _next_node(
         path=node.path,
         schema=new_schema,
         schema_path=new_schema_path,
+        parent=node,
     )
 
 

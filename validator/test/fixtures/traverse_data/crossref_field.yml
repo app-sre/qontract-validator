@@ -45,6 +45,32 @@ expected_nodes:
     $ref: /common-1.json#/definitions/crossref
     $schemaRef: another-schema-1.yml
   schema_path: schema-1.yml
+  parent:
+    data:
+      $ref: file-2-another-schema-1.yml
+    file_schema_path: schema-1.yml
+    graphql_type_name: Schema_v1
+    graphql_field_name: crossref_field
+    jsonpath: crossref_field
+    path: file-1-schema-1.yml
+    schema:
+      "$ref": "/common-1.json#/definitions/crossref"
+      "$schemaRef": "another-schema-1.yml"
+    schema_path: schema-1.yml
+    parent:
+      data:
+        $schema: schema-1.yml
+        crossref_field:
+          $ref: file-2-another-schema-1.yml
+      file_schema_path: schema-1.yml
+      graphql_type_name: Schema_v1
+      path: file-1-schema-1.yml
+      schema:
+        properties:
+          crossref_field:
+            "$ref": "/common-1.json#/definitions/crossref"
+            "$schemaRef": "another-schema-1.yml"
+      schema_path: schema-1.yml
 - data: bla
   file_schema_path: another-schema-1.yml
   graphql_field_name: simple_field
@@ -54,3 +80,15 @@ expected_nodes:
   schema:
     type: string
   schema_path: another-schema-1.yml
+  parent:
+    data:
+      $schema: another-schema-1.yml
+      simple_field: bla
+    file_schema_path: another-schema-1.yml
+    graphql_type_name: AnotherSchema_v1
+    path: file-2-another-schema-1.yml
+    schema:
+      properties:
+        simple_field:
+          type: string
+    schema_path: another-schema-1.yml

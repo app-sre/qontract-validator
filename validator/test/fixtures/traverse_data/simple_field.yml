@@ -31,3 +31,16 @@ expected_nodes:
   schema:
     type: string
   schema_path: schema-1.yml
+  parent:
+    data:
+      $schema: schema-1.yml
+      simple_field: bla
+    file_schema_path: schema-1.yml
+    graphql_type_name: Schema_v1
+    path: file-1-schema-1.yml
+    schema:
+      $schema: "/metaschema-1.json"
+      properties:
+        simple_field:
+          type: string
+    schema_path: schema-1.yml

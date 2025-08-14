@@ -34,3 +34,16 @@ expected_nodes:
   schema:
     $ref: /common-1.json#/definitions/resourceref
   schema_path: schema-1.yml
+  parent:
+    data:
+      $schema: schema-1.yml
+      simple_ref: /resource-1.yml
+    file_schema_path: schema-1.yml
+    graphql_type_name: Schema_v1
+    path: file-1-schema-1.yml
+    schema:
+      $schema: "/metaschema-1.json"
+      properties:
+        simple_ref:
+          "$ref": "/common-1.json#/definitions/resourceref"
+    schema_path: schema-1.yml

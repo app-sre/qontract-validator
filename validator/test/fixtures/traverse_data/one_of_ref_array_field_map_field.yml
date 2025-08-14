@@ -86,6 +86,58 @@ expected_nodes:
   schema:
     $ref: /common-1.json#/definitions/resourceref
   schema_path: one-of-type-1.yml
+  parent:
+    data:
+      type_field: flavour-1
+      a_field: /resource-1.yml
+    file_schema_path: schema-1.yml
+    graphql_type_name: SubType_v1
+    jsonpath: one_of_ref_array.[0]
+    path: file-1-schema-1.yml
+    schema:
+      properties:
+        type_field:
+          type:
+            string
+          enum:
+          - flavour-1
+        a_field:
+          "$ref": "/common-1.json#/definitions/resourceref"
+    schema_path: one-of-type-1.yml
+    parent:
+      data:
+      - type_field: flavour-1
+        a_field: /resource-1.yml
+      - type_field: flavour-2
+        a_field: bla
+      file_schema_path: schema-1.yml
+      graphql_type_name: Schema_v1
+      graphql_field_name: one_of_ref_array
+      jsonpath: one_of_ref_array
+      path: file-1-schema-1.yml
+      schema:
+        type: array
+        items:
+          "$ref": "one-of-type-1.yml"
+      schema_path: schema-1.yml
+      parent:
+        data:
+          $schema: schema-1.yml
+          one_of_ref_array:
+          - type_field: flavour-1
+            a_field: /resource-1.yml
+          - type_field: flavour-2
+            a_field: bla
+        file_schema_path: schema-1.yml
+        graphql_type_name: Schema_v1
+        path: file-1-schema-1.yml
+        schema:
+          properties:
+            one_of_ref_array:
+              type: array
+              items:
+                "$ref": "one-of-type-1.yml"
+        schema_path: schema-1.yml
 - data: flavour-1
   file_schema_path: schema-1.yml
   graphql_field_name: type_field
@@ -97,6 +149,58 @@ expected_nodes:
     enum:
     - flavour-1
   schema_path: one-of-type-1.yml
+  parent:
+    data:
+      type_field: flavour-1
+      a_field: /resource-1.yml
+    file_schema_path: schema-1.yml
+    graphql_type_name: SubType_v1
+    jsonpath: one_of_ref_array.[0]
+    path: file-1-schema-1.yml
+    schema:
+      properties:
+        type_field:
+          type:
+            string
+          enum:
+          - flavour-1
+        a_field:
+          "$ref": "/common-1.json#/definitions/resourceref"
+    schema_path: one-of-type-1.yml
+    parent:
+      data:
+      - type_field: flavour-1
+        a_field: /resource-1.yml
+      - type_field: flavour-2
+        a_field: bla
+      file_schema_path: schema-1.yml
+      graphql_type_name: Schema_v1
+      graphql_field_name: one_of_ref_array
+      jsonpath: one_of_ref_array
+      path: file-1-schema-1.yml
+      schema:
+        type: array
+        items:
+          "$ref": "one-of-type-1.yml"
+      schema_path: schema-1.yml
+      parent:
+        data:
+          $schema: schema-1.yml
+          one_of_ref_array:
+          - type_field: flavour-1
+            a_field: /resource-1.yml
+          - type_field: flavour-2
+            a_field: bla
+        file_schema_path: schema-1.yml
+        graphql_type_name: Schema_v1
+        path: file-1-schema-1.yml
+        schema:
+          properties:
+            one_of_ref_array:
+              type: array
+              items:
+                "$ref": "one-of-type-1.yml"
+        schema_path: schema-1.yml
 - data: bla
   file_schema_path: schema-1.yml
   graphql_field_name: a_field
@@ -106,6 +210,58 @@ expected_nodes:
   schema:
     type: string
   schema_path: one-of-type-1.yml
+  parent:
+    data:
+      type_field: flavour-2
+      a_field: bla
+    file_schema_path: schema-1.yml
+    graphql_type_name: SubType_v2
+    jsonpath: one_of_ref_array.[1]
+    path: file-1-schema-1.yml
+    schema:
+      properties:
+        type_field:
+          type:
+            string
+          enum:
+          - flavour-2
+        a_field:
+          type: string
+    schema_path: one-of-type-1.yml
+    parent:
+      data:
+      - type_field: flavour-1
+        a_field: /resource-1.yml
+      - type_field: flavour-2
+        a_field: bla
+      file_schema_path: schema-1.yml
+      graphql_type_name: Schema_v1
+      graphql_field_name: one_of_ref_array
+      jsonpath: one_of_ref_array
+      path: file-1-schema-1.yml
+      schema:
+        type: array
+        items:
+          "$ref": "one-of-type-1.yml"
+      schema_path: schema-1.yml
+      parent:
+        data:
+          $schema: schema-1.yml
+          one_of_ref_array:
+          - type_field: flavour-1
+            a_field: /resource-1.yml
+          - type_field: flavour-2
+            a_field: bla
+        file_schema_path: schema-1.yml
+        graphql_type_name: Schema_v1
+        path: file-1-schema-1.yml
+        schema:
+          properties:
+            one_of_ref_array:
+              type: array
+              items:
+                "$ref": "one-of-type-1.yml"
+        schema_path: schema-1.yml
 - data: flavour-2
   file_schema_path: schema-1.yml
   graphql_field_name: type_field
@@ -117,3 +273,55 @@ expected_nodes:
     enum:
     - flavour-2
   schema_path: one-of-type-1.yml
+  parent:
+    data:
+      type_field: flavour-2
+      a_field: bla
+    file_schema_path: schema-1.yml
+    graphql_type_name: SubType_v2
+    jsonpath: one_of_ref_array.[1]
+    path: file-1-schema-1.yml
+    schema:
+      properties:
+        type_field:
+          type:
+            string
+          enum:
+          - flavour-2
+        a_field:
+          type: string
+    schema_path: one-of-type-1.yml
+    parent:
+      data:
+      - type_field: flavour-1
+        a_field: /resource-1.yml
+      - type_field: flavour-2
+        a_field: bla
+      file_schema_path: schema-1.yml
+      graphql_type_name: Schema_v1
+      graphql_field_name: one_of_ref_array
+      jsonpath: one_of_ref_array
+      path: file-1-schema-1.yml
+      schema:
+        type: array
+        items:
+          "$ref": "one-of-type-1.yml"
+      schema_path: schema-1.yml
+      parent:
+        data:
+          $schema: schema-1.yml
+          one_of_ref_array:
+          - type_field: flavour-1
+            a_field: /resource-1.yml
+          - type_field: flavour-2
+            a_field: bla
+        file_schema_path: schema-1.yml
+        graphql_type_name: Schema_v1
+        path: file-1-schema-1.yml
+        schema:
+          properties:
+            one_of_ref_array:
+              type: array
+              items:
+                "$ref": "one-of-type-1.yml"
+        schema_path: schema-1.yml
