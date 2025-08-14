@@ -32,6 +32,7 @@ data:
 resources: {}
 expected_nodes:
 - data: bla
+  file_schema_path: schema-1.yml
   graphql_field_name: simple_field
   graphql_type_name: EmbeddedSchema_v1
   jsonpaths:

@@ -22,6 +22,7 @@ def bundle_and_expected_nodes_factory(
             Node(
                 bundle=bundle,
                 data=node.get("data"),
+                file_schema_path=node.get("file_schema_path"),
                 graphql_field_name=node.get("graphql_field_name"),
                 graphql_type_name=node.get("graphql_type_name"),
                 jsonpaths=[

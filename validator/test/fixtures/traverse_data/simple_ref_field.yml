@@ -26,6 +26,7 @@ resources:
     backrefs: []
 expected_nodes:
 - data: /resource-1.yml
+  file_schema_path: schema-1.yml
   graphql_field_name: simple_ref
   graphql_type_name: Schema_v1
   jsonpaths:

@@ -31,6 +31,7 @@ data:
 resources: {}
 expected_nodes:
 - data: bla
+  file_schema_path: schema-1.yml
   graphql_field_name: simple_nested_field
   graphql_type_name: SimpleObject_v1
   jsonpaths:

@@ -10,6 +10,7 @@ from validator.jsonpath import JSONPath, JSONPathField, JSONPathIndex
 class Node:
     bundle: Bundle
     data: Any
+    file_schema_path: str | None
     graphql_field_name: str | None
     graphql_type_name: str | None
     jsonpaths: list[JSONPath]
@@ -59,6 +60,7 @@ def traverse_data(bundle: Bundle) -> Iterator[Node]:
         node = Node(
             bundle=bundle,
             data=datafile,
+            file_schema_path=datafile_schema,
             graphql_field_name=None,
             graphql_type_name=graphql_type_name,
             jsonpaths=[],
@@ -212,6 +214,7 @@ def _next_node(
         return Node(
             bundle=node.bundle,
             data=data,
+            file_schema_path=node.file_schema_path,
             graphql_field_name=None,
             graphql_type_name=resolved_graphql_type.name,
             jsonpaths=jsonpaths,
@@ -225,6 +228,7 @@ def _next_node(
     return Node(
         bundle=node.bundle,
         data=data,
+        file_schema_path=node.file_schema_path,
         graphql_field_name=graphql_field_name,
         graphql_type_name=graphql_type_name,
         jsonpaths=jsonpaths,

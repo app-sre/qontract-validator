@@ -27,6 +27,7 @@ data:
 resources: {}
 expected_nodes:
 - data: bla
+  file_schema_path: schema-1.yml
   graphql_field_name: array_field
   graphql_type_name: Schema_v1
   jsonpaths:

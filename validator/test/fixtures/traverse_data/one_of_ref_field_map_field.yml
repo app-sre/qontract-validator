@@ -78,6 +78,7 @@ resources:
     backrefs: []
 expected_nodes:
 - data: /resource-1.yml
+  file_schema_path: schema-1.yml
   graphql_field_name: a_field
   graphql_type_name: SubType_v1
   jsonpaths:
@@ -88,6 +89,7 @@ expected_nodes:
     $ref: /common-1.json#/definitions/resourceref
   schema_path: one-of-type-1.yml
 - data: flavour-1
+  file_schema_path: schema-1.yml
   graphql_field_name: type_field
   graphql_type_name: SubType_v1
   jsonpaths:
@@ -100,6 +102,7 @@ expected_nodes:
     - flavour-1
   schema_path: one-of-type-1.yml
 - data: bla
+  file_schema_path: schema-1.yml
   graphql_field_name: a_field
   graphql_type_name: SubType_v2
   jsonpaths:
@@ -110,6 +113,7 @@ expected_nodes:
     type: string
   schema_path: one-of-type-1.yml
 - data: flavour-2
+  file_schema_path: schema-1.yml
   graphql_field_name: type_field
   graphql_type_name: SubType_v2
   jsonpaths:
