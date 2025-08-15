@@ -54,6 +54,7 @@ def bundle_and_expected_nodes_factory(
         "crossref_field.yml",
         "crossref_interface_schema_field.yml",
         "embedded_schema_ref_field.yml",
+        "one_of_crossref_schema_field.yml",
         "one_of_ref_array_field_map_field.yml",
         "one_of_ref_field_map_field.yml",
         "simple_field.yml",

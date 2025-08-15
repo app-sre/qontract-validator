@@ -305,18 +305,33 @@ def _resolve_schema(
             data=data,
             graphql_type=graphql_type,
         )
-    if (
-        (schemas := schema.get("oneOf"))
-        and graphql_type
-        and (field := graphql_type.interface_resolve_field_name())
-        and (field_value := graphql_type.resolve_interface_field_value(data))
-    ):
-        new_schema = _find_one_of_schema(schemas, field, field_value)
-        return schema_path, new_schema
+    if schemas := schema.get("oneOf"):
+        if (
+            graphql_type
+            and (field := graphql_type.interface_resolve_field_name())
+            and (field_value := graphql_type.resolve_interface_field_value(data))
+        ):
+            new_schema = _find_one_of_schema_by_enum(schemas, field, field_value)
+            return _resolve_schema(
+                schema_path=schema_path,
+                schema=new_schema,
+                bundle=bundle,
+                data=data,
+                graphql_type=graphql_type,
+            )
+        if _is_inline_and_referenced(schemas):
+            new_schema = _find_one_of_schema_by_crossref_data(schemas, data)
+            return _resolve_schema(
+                schema_path=schema_path,
+                schema=new_schema,
+                bundle=bundle,
+                data=data,
+                graphql_type=graphql_type,
+            )
     return schema_path, schema
 
 
-def _find_one_of_schema(
+def _find_one_of_schema_by_enum(
     schemas: list[dict[str, Any]],
     field: str,
     field_value: Any,
@@ -325,3 +340,36 @@ def _find_one_of_schema(
         if field_value in schema.get("properties", {}).get(field, {}).get("enum", []):
             return schema
     return None
+
+
+def _find_one_of_schema_by_crossref_data(
+    schemas: list[dict[str, Any]],
+    data: Any,
+) -> Any:
+    if isinstance(data, dict) and "$ref" in data:
+        return next(schema for schema in schemas if "$schemaRef" in schema)
+    return next(schema for schema in schemas if "$schemaRef" not in schema)
+
+
+def _is_inline_and_referenced(schemas: list[dict[str, Any]]) -> bool:
+    """
+    Check if the schemas are inline and referenced.
+
+    example:
+    ```yaml
+    oneOf:
+      # inline
+      - "$ref": "another-schema-1.yml"
+      # referenced
+      - "$ref": "/common-1.json#/definitions/crossref"
+        "$schemaRef": "another-schema-1.yml"
+    ```
+
+    Args:
+        schemas (list): The list of schemas to check.
+    Returns:
+        bool: True if the schemas are inline and referenced, otherwise False.
+    """
+    inline_count = sum("$schemaRef" not in schema for schema in schemas)
+    referenced_count = sum("$schemaRef" in schema for schema in schemas)
+    return inline_count == 1 and referenced_count == 1
