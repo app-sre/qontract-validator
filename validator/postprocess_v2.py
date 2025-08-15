@@ -12,9 +12,7 @@ from validator.jsonpath import (
 )
 from validator.traverse import Node, traverse_data
 
-RESOURCE_REF_SCHEMA = {
-    "$ref": "/common-1.json#/definitions/resourceref",
-}
+RESOURCE_REF = "/common-1.json#/definitions/resourceref"
 
 
 class Backref(TypedDict):
@@ -93,7 +91,13 @@ def build_backref(node: Node) -> Backref | None:
     Returns:
         Backref | None: Returns a Backref object if the node is a resource reference,
     """
-    if node.schema == RESOURCE_REF_SCHEMA and node.data and node.file_schema_path:
+    if (
+        (schema := node.schema)
+        and isinstance(schema, dict)
+        and schema.get("$ref") == RESOURCE_REF
+        and node.data
+        and node.file_schema_path
+    ):
         # TODO: type is not needed, remove it in the next version  # noqa: FIX002, TD002, TD003
         # this logic just keep the type for backward compatibility
         type_name = (
