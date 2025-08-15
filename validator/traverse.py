@@ -278,7 +278,9 @@ def _resolve_schema(
     Resolve the schema based on the schema path, schema, bundle, data, and GraphQL type.
 
     If the schema is a reference ($ref), it resolves the schema from the bundle.
-    If the schema has a oneOf condition and the GraphQL type is provided, it finds the appropriate schema based on the field and value.
+    If the schema has a oneOf condition, it will pick the appropriate schema based on:
+    * inline and referenced schema
+    * graphql field and value for fieldMap strategy
 
     Args:
         schema_path (str | None): The path to the schema.
@@ -289,57 +291,71 @@ def _resolve_schema(
     Returns:
         tuple[str | None, Any]: A tuple containing the resolved schema path and schema.
     """
+    ref_resolved_schema_path, ref_resolved_schema = _resolve_ref_schema(
+        schema_path=schema_path,
+        schema=schema,
+        bundle=bundle,
+    )
+
     if (
-        schema_path is None
-        or schema is None
-        or not isinstance(schema, dict)
-        or "$schemaRef" in schema
-        or not isinstance(data, dict)
+        ref_resolved_schema_path
+        and ref_resolved_schema
+        and isinstance(ref_resolved_schema, dict)
+        and "$schemaRef" not in ref_resolved_schema
+        and (schemas := ref_resolved_schema.get("oneOf"))
     ):
-        return schema_path, schema
-    if ref := schema.get("$ref"):
-        return _resolve_schema(
-            schema_path=ref,
-            schema=bundle.schemas.get(ref),
-            bundle=bundle,
-            data=data,
-            graphql_type=graphql_type,
-        )
-    if schemas := schema.get("oneOf"):
+        if _is_inline_and_referenced(schemas):
+            new_schema = _find_one_of_schema_by_crossref_data(schemas, data)
+            return _resolve_ref_schema(ref_resolved_schema_path, new_schema, bundle)
         if (
             graphql_type
             and (field := graphql_type.interface_resolve_field_name())
             and (field_value := graphql_type.resolve_interface_field_value(data))
         ):
-            new_schema = _find_one_of_schema_by_enum(schemas, field, field_value)
-            return _resolve_schema(
-                schema_path=schema_path,
-                schema=new_schema,
+            return _find_one_of_schema_by_enum(
+                schemas=schemas,
+                field=field,
+                field_value=field_value,
+                schema_path=ref_resolved_schema_path,
                 bundle=bundle,
-                data=data,
-                graphql_type=graphql_type,
             )
-        if _is_inline_and_referenced(schemas):
-            new_schema = _find_one_of_schema_by_crossref_data(schemas, data)
-            return _resolve_schema(
-                schema_path=schema_path,
-                schema=new_schema,
-                bundle=bundle,
-                data=data,
-                graphql_type=graphql_type,
-            )
+
+    return ref_resolved_schema_path, ref_resolved_schema
+
+
+def _resolve_ref_schema(
+    schema_path: str | None,
+    schema: Any,
+    bundle: Bundle,
+) -> tuple[str | None, Any]:
+    if (
+        schema
+        and isinstance(schema, dict)
+        and "$schemaRef" not in schema
+        and (ref := schema.get("$ref"))
+        and (new_schema := bundle.schemas.get(ref))
+    ):
+        return ref, new_schema
     return schema_path, schema
 
 
 def _find_one_of_schema_by_enum(
-    schemas: list[dict[str, Any]],
+    schemas: list[Any],
     field: str,
     field_value: Any,
-) -> Any:
+    schema_path: str | None,
+    bundle: Bundle,
+) -> tuple[str | None, Any]:
     for schema in schemas:
-        if field_value in schema.get("properties", {}).get(field, {}).get("enum", []):
-            return schema
-    return None
+        new_schema_path, new_schema = _resolve_ref_schema(schema_path, schema, bundle)
+        if (
+            new_schema
+            and isinstance(new_schema, dict)
+            and field_value
+            in new_schema.get("properties", {}).get(field, {}).get("enum", [])
+        ):
+            return new_schema_path, new_schema
+    return schema_path, None
 
 
 def _find_one_of_schema_by_crossref_data(
