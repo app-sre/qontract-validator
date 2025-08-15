@@ -10,6 +10,8 @@ schemas:
     properties:
       simple_field:
         type: string
+      __identifier: # +
+        type: string
 graphql:
   $schema: "graphql-schema-1.yml"
   confs:
@@ -41,4 +43,5 @@ data:
   file-2-another-schema-1.yml:
     $schema: another-schema-1.yml
     simple_field: bla
+    __identifier: "128ecf542a35ac5270a87dc740918404" # +
 resources: {}
