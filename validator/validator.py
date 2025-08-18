@@ -188,7 +188,7 @@ def validate_schema(
 
     meta_schema_url = schema_data.get("$schema")
     if meta_schema_url is None:
-        return ValidationError(kind, filename, "MISSING_SCHEMA_URL", NotFoundError())
+        return ValidationError(kind, filename, "MISSING_SCHEMA_URL", NotFoundError(f"Missing schema URL in file {filename}"))
 
     meta_schema = schemas_bundle.get(meta_schema_url)
     if meta_schema is None:
@@ -233,7 +233,7 @@ def validate_file(
     schema = schemas_bundle.get(schema_url)
     if schema is None:
         return ValidationError(
-            kind, filename, "SCHEMA_NOT_FOUND", NotFoundError(), schema_url=schema_url
+            kind, filename, "SCHEMA_NOT_FOUND", NotFoundError(f"Schema {schema_url} not found in the file {filename}"), schema_url=schema_url
         )
 
     try:
@@ -328,14 +328,14 @@ def validate_ref(
     ref_data = bundle.get(ref["$ref"])
     if ref_data is None:
         yield ValidationError(
-            kind, filename, "FILE_NOT_FOUND", NotFoundError(), ref=ref["$ref"]
+            kind, filename, "FILE_NOT_FOUND", NotFoundError(f"Reference to file {ref["$ref"]} in file {filename} not found"), ref=ref["$ref"]
         )
         return
 
     schema = schemas_bundle.get(data["$schema"])
     if schema is None:
         yield ValidationError(
-            kind, filename, "SCHEMA_NOT_FOUND", NotFoundError(), ref=ref["$ref"]
+            kind, filename, "SCHEMA_NOT_FOUND", NotFoundError(f"Reference to schema {ref["$ref"]} in file {filename} not found"), ref=ref["$ref"]
         )
         return
 
