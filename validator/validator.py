@@ -230,7 +230,12 @@ def validate_file(
 
     schema_url = data.get("$schema")
     if schema_url is None:
-        return ValidationError(kind, filename, "MISSING_SCHEMA_URL", NotFoundError())
+        return ValidationError(
+            kind,
+            filename,
+            "MISSING_SCHEMA_URL",
+            NotFoundError(f"Missing schema URL in file {filename}"),
+        )
 
     if not schema_url.startswith("http") and not schema_url.startswith("/"):
         schema_url = "/" + schema_url
