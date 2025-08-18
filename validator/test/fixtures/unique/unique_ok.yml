@@ -7,6 +7,10 @@ schemas:
         type: array
         items:
           "$ref": "another-schema-1.yml"
+      one_of_ref_array:
+        type: array
+        items:
+          "$ref": "one-of-type-1.yml"
       crossref_field:
         "$ref": "/common-1.json#/definitions/crossref"
         "$schemaRef": "another-schema-1.yml"
@@ -19,6 +23,27 @@ schemas:
     properties:
       simple_field:
         type: string
+  "one-of-type-1.yml":
+    properties:
+      type_field:
+        type: string
+    oneOf:
+    - properties:
+        type_field:
+          type:
+            string
+          enum:
+          - flavour-1
+        a_field:
+          type: string
+    - properties:
+        type_field:
+          type:
+            string
+          enum:
+          - flavour-2
+        a_field:
+          type: string
 graphql:
   $schema: "graphql-schema-1.yml"
   confs:
@@ -28,6 +53,9 @@ graphql:
       type: AnotherSchema_v1
     - name: ref_array
       type: AnotherSchema_v1
+      isList: true
+    - name: one_of_ref_array
+      type: OneOfType_v1
       isList: true
     - name: crossref_field
       type: AnotherSchema_v1
@@ -40,6 +68,32 @@ graphql:
     - name: simple_field
       type: string
       isUnique: true
+  - name: OneOfType_v1
+    isInterface: true
+    interfaceResolve:
+      strategy: fieldMap
+      field: type_field
+      fieldMap:
+        flavour-1: SubType_v1
+        flavour-2: SubType_v2
+    fields:
+    - name: type_field
+      type: string
+  - name: SubType_v1
+    interface: OneOfType_v1
+    fields:
+    - name: type_field
+      type: string
+    - name: a_field
+      type: string
+      isUnique: true
+  - name: SubType_v2
+    interface: OneOfType_v1
+    fields:
+    - name: type_field
+      type: string
+    - name: a_field
+      type: string
   - name: Query
     fields:
     - type: Schema_v1
@@ -52,6 +106,11 @@ data:
       simple_field: bla
     ref_array:
     - simple_field: bla
+    one_of_ref_array:
+    - type_field: flavour-1
+      a_field: bla
+    - type_field: flavour-2
+      a_field: foo
     crossref_field:
       $ref: file-2-another-schema-1.yml
     crossref_array:

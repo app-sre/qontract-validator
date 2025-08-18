@@ -24,6 +24,7 @@ def parse_node(node: dict[str, Any], bundle: Bundle) -> Node:
         jsonpaths=parse_jsonpath(node.get("jsonpath", "")),
         path=node["path"],
         schema=node.get("schema"),
+        schema_one_of_root=node.get("schema_one_of_root"),
         schema_path=node.get("schema_path"),
         parent=parent,
     )

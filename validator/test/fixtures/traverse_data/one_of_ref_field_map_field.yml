@@ -103,6 +103,27 @@ expected_nodes:
           - flavour-1
         a_field:
           "$ref": "/common-1.json#/definitions/resourceref"
+    schema_one_of_root:
+      properties:
+        type_field:
+          type: string
+      oneOf:
+      - properties:
+          type_field:
+            type:
+              string
+            enum:
+            - flavour-1
+          a_field:
+            "$ref": "/common-1.json#/definitions/resourceref"
+      - properties:
+          type_field:
+            type:
+              string
+            enum:
+            - flavour-2
+          a_field:
+            type: string
     schema_path: one-of-type-1.yml
     parent:
       data:
@@ -146,6 +167,27 @@ expected_nodes:
           - flavour-1
         a_field:
           "$ref": "/common-1.json#/definitions/resourceref"
+    schema_one_of_root:
+      properties:
+        type_field:
+          type: string
+      oneOf:
+      - properties:
+          type_field:
+            type:
+              string
+            enum:
+            - flavour-1
+          a_field:
+            "$ref": "/common-1.json#/definitions/resourceref"
+      - properties:
+          type_field:
+            type:
+              string
+            enum:
+            - flavour-2
+          a_field:
+            type: string
     schema_path: one-of-type-1.yml
     parent:
       data:
@@ -187,6 +229,27 @@ expected_nodes:
           - flavour-2
         a_field:
           type: string
+    schema_one_of_root:
+      properties:
+        type_field:
+          type: string
+      oneOf:
+      - properties:
+          type_field:
+            type:
+              string
+            enum:
+            - flavour-1
+          a_field:
+            "$ref": "/common-1.json#/definitions/resourceref"
+      - properties:
+          type_field:
+            type:
+              string
+            enum:
+            - flavour-2
+          a_field:
+            type: string
     schema_path: one-of-type-1.yml
     parent:
       data:
@@ -230,6 +293,27 @@ expected_nodes:
           - flavour-2
         a_field:
           type: string
+    schema_one_of_root:
+      properties:
+        type_field:
+          type: string
+      oneOf:
+      - properties:
+          type_field:
+            type:
+              string
+            enum:
+            - flavour-1
+          a_field:
+            "$ref": "/common-1.json#/definitions/resourceref"
+      - properties:
+          type_field:
+            type:
+              string
+            enum:
+            - flavour-2
+          a_field:
+            type: string
     schema_path: one-of-type-1.yml
     parent:
       data:

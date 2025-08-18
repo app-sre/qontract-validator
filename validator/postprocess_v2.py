@@ -12,6 +12,16 @@ from validator.jsonpath import (
 )
 from validator.traverse import Node, traverse_data
 
+CHECKSUM_FIELD_SCHEMA = {
+    "type": "string",
+    "description": "sha256sum of the datafile",
+}
+IDENTIFIER_FIELD_NAME = "__identifier"
+IDENTIFIER_SCHEMA = {
+    IDENTIFIER_FIELD_NAME: {
+        "type": "string",
+    }
+}
 RESOURCE_REF = "/common-1.json#/definitions/resourceref"
 
 
@@ -23,8 +33,9 @@ class Backref(TypedDict):
 
 
 @dataclass
-class UniqueFieldNode:
+class ContextUniqueNode:
     schema: dict[str, Any]
+    schema_one_of_root: Any
     data: dict[str, Any]
     props: set[str]
     path: str
@@ -43,28 +54,40 @@ def postprocess_bundle(
         patch_schema_checksum_field(bundle, checksum_field_name)
 
     backrefs_by_resource_path = defaultdict(list)
-    unique_field_nodes: dict[tuple[str, str], UniqueFieldNode] = {}
+    context_unique_nodes: dict[tuple[str, str], ContextUniqueNode] = {}
 
     for node in traverse_data(bundle):
         if backref := build_backref(node):
             backrefs_by_resource_path[node.data].append(backref)
 
-        if unique_field_node := build_unique_field_node(node):
-            key = (unique_field_node.path, unique_field_node.jsonpath)
-            if existing_node := unique_field_nodes.get(key):
-                existing_node.props.update(unique_field_node.props)
+        if context_unique_node := build_context_unique_node(node):
+            key = (context_unique_node.path, context_unique_node.jsonpath)
+            if existing_node := context_unique_nodes.get(key):
+                existing_node.props.update(context_unique_node.props)
             else:
-                unique_field_nodes[key] = unique_field_node
+                context_unique_nodes[key] = context_unique_node
 
     for resource_path, resource in bundle.resources.items():
         resource["backrefs"] = backrefs_by_resource_path.get(resource_path, [])
 
-    for unique_field_node in unique_field_nodes.values():
-        if identifier := unique_field_node.identifier:
-            unique_field_node.schema["properties"]["__identifier"] = {
-                "type": "string",
-            }
-            unique_field_node.data["__identifier"] = identifier
+    for context_unique_node in context_unique_nodes.values():
+        patch_context_unique_schema_and_data(context_unique_node)
+
+
+def patch_context_unique_schema_and_data(
+    context_unique_node: ContextUniqueNode,
+) -> None:
+    if not context_unique_node.identifier:
+        return
+    context_unique_node.schema["properties"].update(IDENTIFIER_SCHEMA)
+    if (one_of_root := context_unique_node.schema_one_of_root) and isinstance(
+        one_of_root, dict
+    ):
+        if "properties" not in one_of_root:
+            one_of_root["properties"] = IDENTIFIER_SCHEMA
+        else:
+            one_of_root["properties"].update(IDENTIFIER_SCHEMA)
+    context_unique_node.data[IDENTIFIER_FIELD_NAME] = context_unique_node.identifier
 
 
 def patch_schema_checksum_field(
@@ -73,10 +96,7 @@ def patch_schema_checksum_field(
 ) -> None:
     for s in bundle.schemas.values():
         if s["$schema"] == "/metaschema-1.json":
-            s["properties"][checksum_field_name] = {
-                "type": "string",
-                "description": "sha256sum of the datafile",
-            }
+            s["properties"][checksum_field_name] = CHECKSUM_FIELD_SCHEMA
 
 
 def build_backref(node: Node) -> Backref | None:
@@ -118,9 +138,9 @@ def build_backref(node: Node) -> Backref | None:
     return None
 
 
-def build_unique_field_node(node: Node) -> UniqueFieldNode | None:
+def build_context_unique_node(node: Node) -> ContextUniqueNode | None:
     """
-    Build a unique field node for __identifier generation.
+    Build a context unique node for a given node.
 
     If the current traversed node is directly inside an array item,
     and current graphql field has isUnique or isContextUnique set to true,
@@ -129,9 +149,9 @@ def build_unique_field_node(node: Node) -> UniqueFieldNode | None:
     Non-top level graphql type fields are covered by non crossref field.
 
     Args:
-        node (Node): The node to check for a unique field.
+        node (Node): The node to check for a context unique field.
     Returns:
-        UniqueFieldNode | None: Returns a UniqueFieldNode if the node is a unique field
+        ContextUniqueNode | None: Returns a ContextUniqueNode if the node is a unique field, otherwise None.
     """
     match node.jsonpaths:
         case [*_, JSONPathIndex(), JSONPathField(field)]:
@@ -144,7 +164,7 @@ def build_unique_field_node(node: Node) -> UniqueFieldNode | None:
             return None
 
 
-def _build_crossref_unique_field_node(node: Node) -> UniqueFieldNode | None:
+def _build_crossref_unique_field_node(node: Node) -> ContextUniqueNode | None:
     path = node.data
     if (
         path
@@ -156,11 +176,12 @@ def _build_crossref_unique_field_node(node: Node) -> UniqueFieldNode | None:
         props = {
             prop
             for prop, field in graphql_type.fields.items()
-            if _is_unique_field(field)
+            if _is_context_unique_field(field)
         }
         if props:
-            return UniqueFieldNode(
+            return ContextUniqueNode(
                 schema=schema,
+                schema_one_of_root=None,
                 data=data,
                 props=props,
                 path=path,
@@ -172,15 +193,16 @@ def _build_crossref_unique_field_node(node: Node) -> UniqueFieldNode | None:
 def _build_array_item_unique_field_node(
     node: Node,
     field: str,
-) -> UniqueFieldNode | None:
+) -> ContextUniqueNode | None:
     if (
         node.parent
         and isinstance(node.parent.data, dict)
         and (graphql_field := node.graphql_field)
-        and _is_unique_field(graphql_field)
+        and _is_context_unique_field(graphql_field)
     ):
-        return UniqueFieldNode(
+        return ContextUniqueNode(
             schema=node.parent.schema,
+            schema_one_of_root=node.parent.schema_one_of_root,
             data=node.parent.data,
             props={field},
             path=node.path,
@@ -189,7 +211,7 @@ def _build_array_item_unique_field_node(
     return None
 
 
-def _is_unique_field(graphql_field: GraphqlField) -> bool:
+def _is_context_unique_field(graphql_field: GraphqlField) -> bool:
     """Check if the field is unique or context unique."""
     return any(graphql_field.get(field) for field in ["isUnique", "isContextUnique"])
 

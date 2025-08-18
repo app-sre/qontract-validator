@@ -7,6 +7,10 @@ schemas:
         type: array
         items:
           "$ref": "another-schema-1.yml"
+      one_of_ref_array:
+        type: array
+        items:
+          "$ref": "one-of-type-1.yml"
       crossref_field:
         "$ref": "/common-1.json#/definitions/crossref"
         "$schemaRef": "another-schema-1.yml"
@@ -21,6 +25,31 @@ schemas:
         type: string
       __identifier: # +
         type: string
+  "one-of-type-1.yml":
+    properties:
+      type_field:
+        type: string
+      __identifier: # +
+        type: string
+    oneOf:
+    - properties:
+        __identifier: # +
+          type: string
+        type_field:
+          type:
+            string
+          enum:
+          - flavour-1
+        a_field:
+          type: string
+    - properties:
+        type_field:
+          type:
+            string
+          enum:
+          - flavour-2
+        a_field:
+          type: string
 graphql:
   $schema: "graphql-schema-1.yml"
   confs:
@@ -30,6 +59,9 @@ graphql:
       type: AnotherSchema_v1
     - name: ref_array
       type: AnotherSchema_v1
+      isList: true
+    - name: one_of_ref_array
+      type: OneOfType_v1
       isList: true
     - name: crossref_field
       type: AnotherSchema_v1
@@ -42,6 +74,32 @@ graphql:
     - name: simple_field
       type: string
       isContextUnique: true
+  - name: OneOfType_v1
+    isInterface: true
+    interfaceResolve:
+      strategy: fieldMap
+      field: type_field
+      fieldMap:
+        flavour-1: SubType_v1
+        flavour-2: SubType_v2
+    fields:
+    - name: type_field
+      type: string
+  - name: SubType_v1
+    interface: OneOfType_v1
+    fields:
+    - name: type_field
+      type: string
+    - name: a_field
+      type: string
+      isContextUnique: true
+  - name: SubType_v2
+    interface: OneOfType_v1
+    fields:
+    - name: type_field
+      type: string
+    - name: a_field
+      type: string
   - name: Query
     fields:
     - type: Schema_v1
@@ -55,6 +113,12 @@ data:
     ref_array:
     - simple_field: bla
       __identifier: "128ecf542a35ac5270a87dc740918404" # +
+    one_of_ref_array:
+    - type_field: flavour-1
+      a_field: bla
+      __identifier: "128ecf542a35ac5270a87dc740918404" # +
+    - type_field: flavour-2
+      a_field: foo
     crossref_field:
       $ref: file-2-another-schema-1.yml
     crossref_array:

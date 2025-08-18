@@ -1,6 +1,6 @@
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any, Self
+from typing import Any, NamedTuple, Self
 
 from validator.bundle import Bundle, GraphqlField, GraphqlTypeV2
 from validator.jsonpath import JSONPath, JSONPathField, JSONPathIndex
@@ -16,6 +16,7 @@ class Node:
     jsonpaths: list[JSONPath]
     path: str
     schema: Any
+    schema_one_of_root: Any
     schema_path: str | None
     parent: Self | None
 
@@ -67,6 +68,7 @@ def traverse_data(bundle: Bundle) -> Iterator[Node]:
             jsonpaths=[],
             path=datafile_path,
             schema=schema,
+            schema_one_of_root=None,
             schema_path=datafile_schema,
             parent=None,
         )
@@ -85,6 +87,17 @@ def _traverse_node(node: Node) -> Iterator[Node]:
         return
     else:
         yield node
+
+
+class GraphqlInfo(NamedTuple):
+    graphql_type: GraphqlTypeV2 | None
+    graphql_field: GraphqlField | None
+
+
+class SchemaInfo(NamedTuple):
+    schema_path: str | None
+    schema: Any
+    schema_one_of_root: Any
 
 
 def _next_dict_node(node: Node, key: str, value: Any) -> Node | None:
@@ -117,7 +130,7 @@ def _next_list_node(node: Node, index: int, value: Any) -> Node:
 def _next_dict_graphql(
     node: Node,
     field_name: str,
-) -> tuple[GraphqlTypeV2 | None, GraphqlField | None]:
+) -> GraphqlInfo:
     """
     Resolve the next GraphQL type and field for a given dict node and field name.
 
@@ -129,26 +142,26 @@ def _next_dict_graphql(
         node (Node): The current node containing the GraphQL type and field information.
         field_name (str): The name of the next field.
     Returns:
-        tuple[GraphqlTypeV2 | None, GraphqlField | None]: A tuple containing the resolved GraphQL type and field.
+        GraphqlInfo: A tuple containing the resolved GraphQL type and field.
     """
     graphql_type = node.graphql_type
     if graphql_type is None:
-        return None, None
+        return GraphqlInfo(None, None)
     graphql_field = node.graphql_field
 
     if field_name == "$ref":
-        return graphql_type, graphql_field
+        return GraphqlInfo(graphql_type, graphql_field)
 
     if graphql_field is None:
-        return graphql_type, graphql_type.get_field(field_name)
+        return GraphqlInfo(graphql_type, graphql_type.get_field(field_name))
 
     if (new_graphql_type_name := graphql_field.get("type")) and (
         new_graphql_type := node.bundle.graphql_lookup.get_by_type_name(
             new_graphql_type_name
         )
     ):
-        return new_graphql_type, new_graphql_type.get_field(field_name)
-    return None, None
+        return GraphqlInfo(new_graphql_type, new_graphql_type.get_field(field_name))
+    return GraphqlInfo(None, None)
 
 
 def _next_dict_schema(
@@ -203,7 +216,7 @@ def _next_node(
         if graphql_field
         else None
     )
-    new_schema_path, new_schema = _resolve_schema(
+    schema_info = _resolve_schema(
         schema_path=node.schema_path,
         schema=schema,
         bundle=node.bundle,
@@ -221,8 +234,9 @@ def _next_node(
             graphql_type_name=resolved_graphql_type.name,
             jsonpaths=jsonpaths,
             path=node.path,
-            schema=new_schema,
-            schema_path=new_schema_path,
+            schema=schema_info.schema,
+            schema_one_of_root=schema_info.schema_one_of_root,
+            schema_path=schema_info.schema_path,
             parent=node,
         )
 
@@ -236,8 +250,9 @@ def _next_node(
         graphql_type_name=graphql_type_name,
         jsonpaths=jsonpaths,
         path=node.path,
-        schema=new_schema,
-        schema_path=new_schema_path,
+        schema=schema_info.schema,
+        schema_one_of_root=schema_info.schema_one_of_root,
+        schema_path=schema_info.schema_path,
         parent=node,
     )
 
@@ -273,7 +288,7 @@ def _resolve_schema(
     bundle: Bundle,
     data: Any,
     graphql_type: GraphqlTypeV2 | None,
-) -> tuple[str | None, Any]:
+) -> SchemaInfo:
     """
     Resolve the schema based on the schema path, schema, bundle, data, and GraphQL type.
 
@@ -289,73 +304,99 @@ def _resolve_schema(
         data (Any): The data to resolve the schema against.
         graphql_type (GraphqlTypeV2 | None): The GraphQL type to resolve the schema against.
     Returns:
-        tuple[str | None, Any]: A tuple containing the resolved schema path and schema.
     """
-    ref_resolved_schema_path, ref_resolved_schema = _resolve_ref_schema(
-        schema_path=schema_path,
-        schema=schema,
+    schema_info = _resolve_ref_schema(
+        schema_info=SchemaInfo(
+            schema_path=schema_path,
+            schema=schema,
+            schema_one_of_root=None,
+        ),
         bundle=bundle,
     )
 
     if (
-        ref_resolved_schema_path
-        and ref_resolved_schema
-        and isinstance(ref_resolved_schema, dict)
-        and "$schemaRef" not in ref_resolved_schema
-        and (schemas := ref_resolved_schema.get("oneOf"))
+        schema_info.schema_path
+        and schema_info.schema
+        and isinstance(schema_info.schema, dict)
+        and "$schemaRef" not in schema_info.schema
+        and (schemas := schema_info.schema.get("oneOf"))
     ):
         if _is_inline_and_referenced(schemas):
             new_schema = _find_one_of_schema_by_crossref_data(schemas, data)
-            return _resolve_ref_schema(ref_resolved_schema_path, new_schema, bundle)
+            return _resolve_ref_schema(
+                SchemaInfo(
+                    schema_path=schema_info.schema_path,
+                    schema=new_schema,
+                    schema_one_of_root=schema_info.schema_one_of_root,
+                ),
+                bundle=bundle,
+            )
         if (
             graphql_type
             and (field := graphql_type.interface_resolve_field_name())
             and (field_value := graphql_type.resolve_interface_field_value(data))
         ):
             return _find_one_of_schema_by_enum(
+                root_schema_info=schema_info,
                 schemas=schemas,
                 field=field,
                 field_value=field_value,
-                schema_path=ref_resolved_schema_path,
                 bundle=bundle,
             )
-
-    return ref_resolved_schema_path, ref_resolved_schema
+    return schema_info
 
 
 def _resolve_ref_schema(
-    schema_path: str | None,
-    schema: Any,
+    schema_info: SchemaInfo,
     bundle: Bundle,
-) -> tuple[str | None, Any]:
+) -> SchemaInfo:
     if (
-        schema
+        (schema := schema_info.schema)
         and isinstance(schema, dict)
         and "$schemaRef" not in schema
         and (ref := schema.get("$ref"))
         and (new_schema := bundle.schemas.get(ref))
     ):
-        return ref, new_schema
-    return schema_path, schema
+        return SchemaInfo(
+            schema_path=ref,
+            schema=new_schema,
+            schema_one_of_root=None,
+        )
+    return schema_info
 
 
 def _find_one_of_schema_by_enum(
+    root_schema_info: SchemaInfo,
     schemas: list[Any],
     field: str,
     field_value: Any,
-    schema_path: str | None,
     bundle: Bundle,
-) -> tuple[str | None, Any]:
+) -> SchemaInfo:
     for schema in schemas:
-        new_schema_path, new_schema = _resolve_ref_schema(schema_path, schema, bundle)
+        schema_info = _resolve_ref_schema(
+            SchemaInfo(
+                schema_path=root_schema_info.schema_path,
+                schema=schema,
+                schema_one_of_root=None,
+            ),
+            bundle=bundle,
+        )
         if (
-            new_schema
-            and isinstance(new_schema, dict)
+            schema_info.schema
+            and isinstance(schema_info.schema, dict)
             and field_value
-            in new_schema.get("properties", {}).get(field, {}).get("enum", [])
+            in schema_info.schema.get("properties", {}).get(field, {}).get("enum", [])
         ):
-            return new_schema_path, new_schema
-    return schema_path, None
+            return SchemaInfo(
+                schema_path=schema_info.schema_path,
+                schema=schema_info.schema,
+                schema_one_of_root=root_schema_info.schema,
+            )
+    return SchemaInfo(
+        schema_path=root_schema_info.schema_path,
+        schema=None,
+        schema_one_of_root=None,
+    )
 
 
 def _find_one_of_schema_by_crossref_data(
