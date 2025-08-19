@@ -34,11 +34,9 @@ def parse_node(node: dict[str, Any], bundle: Bundle) -> Node:
 def bundle_and_expected_nodes_factory(
     fixture_factory: Callable[[str, str], Any],
     bundle_factory: Callable[[dict[str, Any]], Bundle],
-) -> Callable[[str, str], tuple[Bundle, list[Node]]]:
-    def _bundle_and_expected_nodes_factory(
-        base_path: str, fixture: str
-    ) -> tuple[Bundle, list[Node]]:
-        fxt = fixture_factory(base_path, fixture)
+) -> Callable[[str], tuple[Bundle, list[Node]]]:
+    def _bundle_and_expected_nodes_factory(fixture: str) -> tuple[Bundle, list[Node]]:
+        fxt = fixture_factory("traverse_data", fixture)
         bundle = bundle_factory(fxt)
         expected_nodes = [
             parse_node(node, bundle) for node in fxt.get("expected_nodes", [])
@@ -46,6 +44,10 @@ def bundle_and_expected_nodes_factory(
         return bundle, expected_nodes
 
     return _bundle_and_expected_nodes_factory
+
+
+def node_key(node: Node) -> str:
+    return f"{node.path}#{build_jsonpath(node.jsonpaths)}"
 
 
 @pytest.mark.parametrize(
@@ -64,14 +66,11 @@ def bundle_and_expected_nodes_factory(
     ],
 )
 def test_traverse_data(
-    bundle_and_expected_nodes_factory: Callable[[str, str], tuple[Bundle, list[Node]]],
+    bundle_and_expected_nodes_factory: Callable[[str], tuple[Bundle, list[Node]]],
     fixture: str,
 ) -> None:
-    bundle, expected_nodes = bundle_and_expected_nodes_factory("traverse_data", fixture)
+    bundle, expected_nodes = bundle_and_expected_nodes_factory(fixture)
 
-    nodes = sorted(
-        traverse_data(bundle),
-        key=lambda n: f"{n.path}#{build_jsonpath(n.jsonpaths)}",
-    )
+    nodes = traverse_data(bundle)
 
-    assert nodes == expected_nodes
+    assert sorted(nodes, key=node_key) == sorted(expected_nodes, key=node_key)
