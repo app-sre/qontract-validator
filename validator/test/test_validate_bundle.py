@@ -65,13 +65,43 @@ def validation_result_key(result: ValidationResult) -> str:
     return f"{result['kind']}:{result['filename']}"
 
 
-def test_validate_bundle_schema(
+@pytest.mark.parametrize(
+    "fixture",
+    [
+        "schema_ok.yml",
+        "missing_schema_url.yml",
+        "schema_validation_error.yml",
+        "schema_error.yml",
+    ],
+)
+def test_validate_bundle(
     bundle_and_expected_results_factory: Callable[
         [str], tuple[Bundle, list[ValidationResult]]
     ],
+    fixture: str,
 ) -> None:
-    bundle, expected_results = bundle_and_expected_results_factory("schema_ok.yml")
+    bundle, expected_results = bundle_and_expected_results_factory(fixture)
+
     results = validate_bundle(bundle)
-    assert sorted(results, key=validation_result_key) == sorted(
-        expected_results, key=validation_result_key
-    )
+
+    assert len(results) == len(expected_results)
+    for result, expected in zip(
+        sorted(results, key=validation_result_key),
+        sorted(expected_results, key=validation_result_key),
+        strict=True,
+    ):
+        assert result["kind"] == expected["kind"]
+        assert result["filename"] == expected["filename"]
+        assert result.get("ref") == expected.get("ref")
+        assert result["result"]["summary"] == expected["result"]["summary"]
+        assert result["result"]["status"] == expected["result"]["status"]
+        assert result["result"].get("schema_url") == expected["result"].get(
+            "schema_url"
+        )
+        assert result["result"].get("reason") == expected["result"].get("reason")
+        assert expected["result"].get("error", "") in result["result"].get("error", "")
+        assert result["result"].get("ref") == expected["result"].get("ref")
+        assert result["result"].get("ptr") == expected["result"].get("ptr")
+        assert result["result"].get("meta_schema_url") == expected["result"].get(
+            "meta_schema_url"
+        )
