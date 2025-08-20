@@ -301,12 +301,13 @@ def validate_unique_fields(
 
     for (schema, field, _), filenames in unique_fields.items():
         if len(filenames) > 1:
+            sorted_filenames = sorted(filenames)
             yield ValidationError(
                 ValidatedFileKind.UNIQUE,
-                filenames[0],
+                sorted_filenames[0],
                 "DUPLICATE_UNIQUE_FIELD",
                 DuplicateUniqueFieldError(
-                    f"The field '{field}' is repeated: {filenames}",
+                    f"The field '{field}' is repeated: {', '.join(sorted_filenames)}",
                 ),
                 ref=schema,
                 ptr=field,

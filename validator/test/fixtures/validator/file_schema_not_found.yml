@@ -24,7 +24,7 @@ graphql:
     fields:
     - type: Schema_v1
       name: schema_v1
-      datafileSchema: "schema-1.yml"
+      datafileSchema: "/schema-1.yml"
 data:
   file-1-schema-1.yml:
     $schema: schema-2.yml

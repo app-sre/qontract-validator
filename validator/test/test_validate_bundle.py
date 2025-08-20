@@ -77,6 +77,7 @@ def validation_result_key(result: ValidationResult) -> str:
         "file_schema_not_found.yml",
         "file_validation_error.yml",
         "file_validation_error_graphql.yml",
+        "duplicate_unique_fields.yml",
     ],
 )
 def test_validate_bundle(
