@@ -62,7 +62,7 @@ def bundle_and_expected_results_factory(
 
 
 def validation_result_key(result: ValidationResult) -> str:
-    return f"{result['kind']}:{result['filename']}"
+    return f"{result['filename']}:{result['kind']}"
 
 
 @pytest.mark.parametrize(
@@ -78,6 +78,9 @@ def validation_result_key(result: ValidationResult) -> str:
         "file_validation_error.yml",
         "file_validation_error_graphql.yml",
         "duplicate_unique_fields.yml",
+        "resource_invalid_yaml_skip.yml",
+        "resource_schema_not_found.yml",
+        "resource_validation_error.yml",
     ],
 )
 def test_validate_bundle(

@@ -32,18 +32,13 @@ data:
     $file_sha256sum: "d485511a659995bb7d03e9af6942bbb63a4700f53411f247a6a6c2ea3b0386bf"
 resources:
   /resource-1.yml:
-    $schema: null
-    backrefs: []
-    content: "abc"
-    path: "/resource-1.yml"
-    sha256sum: "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb"
-  /resource-2.yml:
-    $schema: "/schema-1.yml"
+    # invalid schema
+    $schema: "/schema-2.yml"
     backrefs: []
     content: |
-      $schema: /schema-1.yml
+      $schema: /schema-2.yml
       simple_field: bla
-    path: "/resource-2.yml"
+    path: "/resource-1.yml"
     sha256sum: "d485511a659995bb7d03e9af6942bbb63a4700f53411f247a6a6c2ea3b0386bf"
 expected_results:
 - kind: SCHEMA
@@ -88,15 +83,11 @@ expected_results:
     status: OK
     schema_url: /app-interface/graphql-schemas-1.yml
     summary: "OK: graphql-schemas/schema.yml (/app-interface/graphql-schemas-1.yml)"
-- kind: NONE
+- kind: FILE
   filename: /resource-1.yml
   result:
-    status: OK
-    schema_url: ''
-    summary: "OK: /resource-1.yml ()"
-- kind: FILE
-  filename: /resource-2.yml
-  result:
-    status: OK
-    schema_url: '/schema-1.yml'
-    summary: "OK: /resource-2.yml (/schema-1.yml)"
+    status: ERROR
+    reason: SCHEMA_NOT_FOUND
+    schema_url: "/schema-2.yml"
+    error: "Schema /schema-2.yml not found in the file /resource-1.yml"
+    summary: "ERROR: /resource-1.yml"
