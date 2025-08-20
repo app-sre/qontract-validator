@@ -14,7 +14,7 @@ schemas:
       simple_field:
         type: string
 graphql:
-  $schema: "/app-interface/graphql-schemas-1.yml"
+  # $schema: "/app-interface/graphql-schemas-1.yml"
   confs:
   - name: Schema_v1
     fields:
@@ -71,6 +71,7 @@ expected_results:
 - kind: FILE
   filename: graphql-schemas/schema.yml
   result:
-      status: OK
-      schema_url: /app-interface/graphql-schemas-1.yml
-      summary: "OK: graphql-schemas/schema.yml (/app-interface/graphql-schemas-1.yml)"
+    status: ERROR
+    reason: MISSING_SCHEMA_URL
+    error: "Missing schema URL in file graphql-schemas/schema.yml"
+    summary: "ERROR: graphql-schemas/schema.yml"

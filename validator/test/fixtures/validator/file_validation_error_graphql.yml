@@ -1,7 +1,7 @@
 schemas:
   "/schema-1.yml":
     $schema: "/metaschema-1.json"
-    # version: '1.0'
+    version: '1.0'
     additionalProperties: false
     properties:
       $schema:
@@ -18,7 +18,8 @@ graphql:
   confs:
   - name: Schema_v1
     fields:
-    - name: simple_field
+    # wrong name type, should be string
+    - name: 123
       type: string
   - name: Query
     fields:
@@ -59,11 +60,9 @@ expected_results:
 - kind: SCHEMA
   filename: /schema-1.yml
   result:
-    status: ERROR
-    reason: VALIDATION_ERROR
-    error: "'version' is a required property"
-    meta_schema_url: /metaschema-1.json
-    summary: "ERROR: /schema-1.yml"
+    status: OK
+    schema_url: /metaschema-1.json
+    summary: "OK: /schema-1.yml (/metaschema-1.json)"
 - kind: FILE
   filename: file-1-schema-1.yml
   result:
@@ -73,6 +72,8 @@ expected_results:
 - kind: FILE
   filename: graphql-schemas/schema.yml
   result:
-    status: OK
+    status: ERROR
     schema_url: /app-interface/graphql-schemas-1.yml
-    summary: "OK: graphql-schemas/schema.yml (/app-interface/graphql-schemas-1.yml)"
+    reason: VALIDATION_ERROR
+    error: "123 is not of type 'string'"
+    summary: "ERROR: graphql-schemas/schema.yml"

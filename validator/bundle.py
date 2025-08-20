@@ -173,9 +173,7 @@ class Bundle:
         return GraphqlLookup(self.graphql)
 
     def __post_init__(self):  # noqa: D105
-        if isinstance(self.graphql, dict) and (
-            self.graphql["confs"] and self.graphql["$schema"]
-        ):
+        if isinstance(self.graphql, dict) and (self.graphql["confs"]):
             self._graphql_type_by_name = {
                 t["name"]: GraphqlType(t["name"], t, self)
                 for t in self.graphql["confs"]

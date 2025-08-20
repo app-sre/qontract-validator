@@ -294,9 +294,10 @@ def validate_unique_fields(
 
     unique_fields = defaultdict(list)
     for filename, data in bundle.data.items():
-        for field in unique_map.get(data["$schema"], []):
-            key = (data["$schema"], field, data.get(field))
-            unique_fields[key].append(filename)
+        if schema := data.get("$schema"):
+            for field in unique_map.get(schema, []):
+                key = (schema, field, data.get(field))
+                unique_fields[key].append(filename)
 
     for (schema, field, _), filenames in unique_fields.items():
         if len(filenames) > 1:
@@ -515,7 +516,7 @@ def validate_bundle(
 
     results_graphql_schemas = (
         [validate_file(bundle.schemas, "graphql-schemas/schema.yml", bundle.graphql)]
-        if isinstance(bundle.graphql, dict) and bundle.graphql["$schema"]
+        if isinstance(bundle.graphql, dict)
         else []
     )
 

@@ -1,7 +1,7 @@
 schemas:
   "/schema-1.yml":
     $schema: "/metaschema-1.json"
-    # version: '1.0'
+    version: '1.0'
     additionalProperties: false
     properties:
       $schema:
@@ -59,11 +59,9 @@ expected_results:
 - kind: SCHEMA
   filename: /schema-1.yml
   result:
-    status: ERROR
-    reason: VALIDATION_ERROR
-    error: "'version' is a required property"
-    meta_schema_url: /metaschema-1.json
-    summary: "ERROR: /schema-1.yml"
+    status: OK
+    schema_url: /metaschema-1.json
+    summary: "OK: /schema-1.yml (/metaschema-1.json)"
 - kind: FILE
   filename: file-1-schema-1.yml
   result:

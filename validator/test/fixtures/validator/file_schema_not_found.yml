@@ -1,7 +1,7 @@
 schemas:
   "/schema-1.yml":
     $schema: "/metaschema-1.json"
-    # version: '1.0'
+    version: '1.0'
     additionalProperties: false
     properties:
       $schema:
@@ -27,7 +27,7 @@ graphql:
       datafileSchema: "schema-1.yml"
 data:
   file-1-schema-1.yml:
-    $schema: /schema-1.yml
+    $schema: schema-2.yml
     simple_field: bla
     $file_sha256sum: "d485511a659995bb7d03e9af6942bbb63a4700f53411f247a6a6c2ea3b0386bf"
 resources: {}
@@ -59,17 +59,17 @@ expected_results:
 - kind: SCHEMA
   filename: /schema-1.yml
   result:
-    status: ERROR
-    reason: VALIDATION_ERROR
-    error: "'version' is a required property"
-    meta_schema_url: /metaschema-1.json
-    summary: "ERROR: /schema-1.yml"
+    status: OK
+    schema_url: /metaschema-1.json
+    summary: "OK: /schema-1.yml (/metaschema-1.json)"
 - kind: FILE
   filename: file-1-schema-1.yml
   result:
-    status: OK
-    schema_url: /schema-1.yml
-    summary: "OK: file-1-schema-1.yml (/schema-1.yml)"
+    status: ERROR
+    reason: SCHEMA_NOT_FOUND
+    schema_url: "/schema-2.yml"
+    error: "Schema /schema-2.yml not found in the file file-1-schema-1.yml"
+    summary: "ERROR: file-1-schema-1.yml"
 - kind: FILE
   filename: graphql-schemas/schema.yml
   result:

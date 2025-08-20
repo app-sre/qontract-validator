@@ -1,7 +1,10 @@
 schemas:
   "/schema-1.yml":
+    $schema: "/metaschema-1.json"
     version: '1.0'
     additionalProperties: false
+    # wrong type num vs string for description
+    description: 123
     properties:
       $schema:
         type: string
@@ -59,8 +62,9 @@ expected_results:
   filename: /schema-1.yml
   result:
     status: ERROR
-    reason: MISSING_SCHEMA_URL
-    error: ""
+    reason: SCHEMA_ERROR
+    error: "123 is not of type 'string'"
+    meta_schema_url: /metaschema-1.json
     summary: "ERROR: /schema-1.yml"
 - kind: FILE
   filename: file-1-schema-1.yml
@@ -71,6 +75,6 @@ expected_results:
 - kind: FILE
   filename: graphql-schemas/schema.yml
   result:
-      status: OK
-      schema_url: /app-interface/graphql-schemas-1.yml
-      summary: "OK: graphql-schemas/schema.yml (/app-interface/graphql-schemas-1.yml)"
+    status: OK
+    schema_url: /app-interface/graphql-schemas-1.yml
+    summary: "OK: graphql-schemas/schema.yml (/app-interface/graphql-schemas-1.yml)"

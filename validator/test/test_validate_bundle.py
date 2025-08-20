@@ -68,10 +68,15 @@ def validation_result_key(result: ValidationResult) -> str:
 @pytest.mark.parametrize(
     "fixture",
     [
-        "schema_ok.yml",
-        "missing_schema_url.yml",
+        "valid.yml",
+        "schema_missing_schema_url.yml",
         "schema_validation_error.yml",
-        "schema_error.yml",
+        "schema_schema_error.yml",
+        "file_missing_schema_url.yml",
+        "file_missing_schema_url_graphql.yml",
+        "file_schema_not_found.yml",
+        "file_validation_error.yml",
+        "file_validation_error_graphql.yml",
     ],
 )
 def test_validate_bundle(
