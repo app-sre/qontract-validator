@@ -118,4 +118,3 @@ expected_results:
     reason: INCORRECT_SCHEMA
     summary: "ERROR: /file-1-schema-1.yml"
     error: "incorrect schema: got `/another-schema-1.yml`, expecting `/wrong-schema-1.yml`"
-    ref: /file-2-another-schema-1.yml

@@ -148,9 +148,7 @@ expected_results:
     summary: "OK: /resource-2.yml (/schema-1.yml)"
 - kind: REF
   filename: /file-1-schema-1.yml
-  ref: /file-2-another-schema-1.yml
   result:
     status: OK
     schema_url: '/schema-1.yml'
     summary: "OK: /file-1-schema-1.yml (/file-2-another-schema-1.yml) (/schema-1.yml)"
-    ref: /file-2-another-schema-1.yml

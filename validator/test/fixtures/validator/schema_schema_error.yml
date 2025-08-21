@@ -64,7 +64,7 @@ expected_results:
     status: ERROR
     reason: SCHEMA_ERROR
     error: "123 is not of type 'string'"
-    meta_schema_url: /metaschema-1.json
+    schema_url: /metaschema-1.json
     summary: "ERROR: /schema-1.yml"
 - kind: FILE
   filename: file-1-schema-1.yml

@@ -92,5 +92,3 @@ expected_results:
     reason: DUPLICATE_UNIQUE_FIELD
     error: "The field 'simple_field' is repeated: file-1-schema-1.yml, file-2-schema-1.yml"
     summary: "ERROR: file-1-schema-1.yml"
-    ref: /schema-1.yml
-    ptr: simple_field

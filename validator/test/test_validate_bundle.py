@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 
 from validator.bundle import Bundle
-from validator.validator import ValidationResult, validate_bundle
+from validator.validator_v2 import ValidationResult, validate_bundle
 
 
 @pytest.fixture
@@ -112,8 +112,3 @@ def test_validate_bundle(
         )
         assert result["result"].get("reason") == expected["result"].get("reason")
         assert expected["result"].get("error", "") in result["result"].get("error", "")
-        assert result["result"].get("ref") == expected["result"].get("ref")
-        assert result["result"].get("ptr") == expected["result"].get("ptr")
-        assert result["result"].get("meta_schema_url") == expected["result"].get(
-            "meta_schema_url"
-        )

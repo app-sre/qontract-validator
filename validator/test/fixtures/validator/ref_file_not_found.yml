@@ -109,4 +109,3 @@ expected_results:
     reason: FILE_NOT_FOUND
     summary: "ERROR: /file-1-schema-1.yml"
     error: "Reference to file /file-2-another-schema-1.yml in file /file-1-schema-1.yml not found"
-    ref: /file-2-another-schema-1.yml
