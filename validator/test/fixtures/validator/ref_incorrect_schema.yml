@@ -11,13 +11,10 @@ schemas:
       $file_sha256sum:
         type: string
         description: sha256sum of the datafile
-      simple_field:
-        type: string
-      ref_field:
-        "$ref": "/another-schema-1.yml"
       crossref_field:
         "$ref": "/common-1.json#/definitions/crossref"
-        "$schemaRef": "/another-schema-1.yml"
+        # wrong schema ref
+        "$schemaRef": "/wrong-schema-1.yml"
   "/another-schema-1.yml":
     $schema: "/metaschema-1.json"
     version: '1.0'
@@ -37,12 +34,10 @@ graphql:
   confs:
   - name: Schema_v1
     fields:
-    - name: simple_field
-      type: string
     - name: crossref_field
       type: AnotherSchema_v1
   - name: AnotherSchema_v1
-    datafile: "another-schema-1.yml"
+    datafile: "/another-schema-1.yml"
     fields:
     - name: another_simple_field
       type: string
@@ -54,31 +49,13 @@ graphql:
 data:
   /file-1-schema-1.yml:
     $schema: /schema-1.yml
-    simple_field: bla
     crossref_field:
       $ref: /file-2-another-schema-1.yml
-    ref_field:
-      another_simple_field: bla
     $file_sha256sum: "d485511a659995bb7d03e9af6942bbb63a4700f53411f247a6a6c2ea3b0386bf"
   /file-2-another-schema-1.yml:
     $schema: /another-schema-1.yml
     another_simple_field: bla
-    $file_sha256sum: "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c"
-resources:
-  /resource-1.yml:
-    $schema: null
-    backrefs: []
-    content: "abc"
-    path: "/resource-1.yml"
-    sha256sum: "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb"
-  /resource-2.yml:
-    $schema: "/schema-1.yml"
-    backrefs: []
-    content: |
-      $schema: /schema-1.yml
-      simple_field: bla
-    path: "/resource-2.yml"
-    sha256sum: "d485511a659995bb7d03e9af6942bbb63a4700f53411f247a6a6c2ea3b0386bf"
+resources: {}
 expected_results:
 - kind: SCHEMA
   filename: /json-schema-spec-draft-06.json
@@ -134,23 +111,11 @@ expected_results:
     status: OK
     schema_url: /app-interface/graphql-schemas-1.yml
     summary: "OK: graphql-schemas/schema.yml (/app-interface/graphql-schemas-1.yml)"
-- kind: NONE
-  filename: /resource-1.yml
-  result:
-    status: OK
-    schema_url: ''
-    summary: "OK: /resource-1.yml ()"
-- kind: FILE
-  filename: /resource-2.yml
-  result:
-    status: OK
-    schema_url: '/schema-1.yml'
-    summary: "OK: /resource-2.yml (/schema-1.yml)"
 - kind: REF
   filename: /file-1-schema-1.yml
-  ref: /file-2-another-schema-1.yml
   result:
-    status: OK
-    schema_url: '/schema-1.yml'
-    summary: "OK: /file-1-schema-1.yml (/file-2-another-schema-1.yml) (/schema-1.yml)"
+    status: ERROR
+    reason: INCORRECT_SCHEMA
+    summary: "ERROR: /file-1-schema-1.yml"
+    error: "incorrect schema: got `/another-schema-1.yml`, expecting `/wrong-schema-1.yml`"
     ref: /file-2-another-schema-1.yml

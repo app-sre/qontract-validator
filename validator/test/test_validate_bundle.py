@@ -81,6 +81,9 @@ def validation_result_key(result: ValidationResult) -> str:
         "resource_invalid_yaml_skip.yml",
         "resource_schema_not_found.yml",
         "resource_validation_error.yml",
+        "ref_file_not_found.yml",
+        "ref_incorrect_schema.yml",
+        "ref_schema_ref_validation_error.yml",
     ],
 )
 def test_validate_bundle(
