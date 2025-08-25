@@ -90,4 +90,4 @@ expected_results:
     reason: VALIDATION_ERROR
     schema_url: "/schema-1.yml"
     error: "123 is not of type 'string'"
-    summary: "ERROR: /resource-1.yml"
+    summary: "ERROR: /resource-1.yml (/schema-1.yml)"

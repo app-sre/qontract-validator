@@ -84,9 +84,8 @@ expected_results:
     status: OK
     schema_url: /app-interface/graphql-schemas-1.yml
     summary: "OK: graphql-schemas/schema.yml (/app-interface/graphql-schemas-1.yml)"
-- kind: NONE
+- kind: FILE
   filename: /resource-1.yml
   result:
     status: OK
-    schema_url: ''
-    summary: "OK: /resource-1.yml ()"
+    summary: "OK: /resource-1.yml"

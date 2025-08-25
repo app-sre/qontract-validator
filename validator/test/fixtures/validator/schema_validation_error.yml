@@ -63,7 +63,7 @@ expected_results:
     reason: VALIDATION_ERROR
     error: "'version' is a required property"
     schema_url: /metaschema-1.json
-    summary: "ERROR: /schema-1.yml"
+    summary: "ERROR: /schema-1.yml (/metaschema-1.json)"
 - kind: FILE
   filename: file-1-schema-1.yml
   result:

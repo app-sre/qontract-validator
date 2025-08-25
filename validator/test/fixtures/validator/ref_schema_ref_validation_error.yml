@@ -121,5 +121,6 @@ expected_results:
   result:
     status: ERROR
     reason: SCHEMA_REF_VALIDATION_ERROR
-    summary: "ERROR: /file-1-schema-1.yml"
+    summary: "ERROR: /file-1-schema-1.yml (/another-schema-1.yml)"
     error: "'/another-schema-1.yml' is not one of ['/wrong-schema-1.yml']"
+    schema_url: /another-schema-1.yml

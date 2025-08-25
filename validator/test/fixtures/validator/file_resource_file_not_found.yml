@@ -82,4 +82,4 @@ expected_results:
     reason: "RESOURCE_FILE_NOT_FOUND"
     error: "Resource file /resource-1.yml not found in file file-1-schema-1.yml"
     schema_url: /schema-1.yml
-    summary: "ERROR: file-1-schema-1.yml"
+    summary: "ERROR: file-1-schema-1.yml (/schema-1.yml)"

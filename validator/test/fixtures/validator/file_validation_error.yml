@@ -70,7 +70,7 @@ expected_results:
     schema_url: /schema-1.yml
     reason: VALIDATION_ERROR
     error: "123 is not of type 'string'"
-    summary: "ERROR: file-1-schema-1.yml"
+    summary: "ERROR: file-1-schema-1.yml (/schema-1.yml)"
 - kind: FILE
   filename: graphql-schemas/schema.yml
   result:

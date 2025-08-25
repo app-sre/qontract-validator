@@ -90,4 +90,4 @@ expected_results:
     reason: SCHEMA_NOT_FOUND
     schema_url: "/schema-2.yml"
     error: "Schema /schema-2.yml not found in the file /resource-1.yml"
-    summary: "ERROR: /resource-1.yml"
+    summary: "ERROR: /resource-1.yml (/schema-2.yml)"
