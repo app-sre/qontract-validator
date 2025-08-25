@@ -2,7 +2,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any, NamedTuple, Self
 
-from validator.bundle import Bundle, GraphqlField, GraphqlTypeV2
+from validator.bundle import RESOURCE_REF, Bundle, GraphqlField, GraphqlTypeV2
 from validator.jsonpath import JSONPath, JSONPathField, JSONPathIndex
 
 
@@ -33,6 +33,13 @@ class Node:
         if graphql_type := self.graphql_type:
             return graphql_type.get_field(self.graphql_field_name)
         return None
+
+    def is_resource_ref(self) -> bool:
+        return (
+            self.schema is not None
+            and isinstance(self.schema, dict)
+            and self.schema.get("$ref") == RESOURCE_REF
+        )
 
 
 def traverse_data(bundle: Bundle) -> Iterator[Node]:

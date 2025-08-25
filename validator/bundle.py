@@ -13,6 +13,8 @@ from typing import (
     TypedDict,
 )
 
+RESOURCE_REF = "/common-1.json#/definitions/resourceref"
+
 
 class InvalidBundleError(Exception):
     pass

@@ -145,6 +145,7 @@ def validate_datafiles(bundle: Bundle) -> Iterator[ValidationResult]:
     unique_index: defaultdict[UniqueIndexKey, Any] = defaultdict(list)
 
     for node in traverse_data(bundle):
+        filename = node.path
         if (
             (graphql_type := node.graphql_type)
             and (graphql_field := node.graphql_field)
@@ -152,7 +153,25 @@ def validate_datafiles(bundle: Bundle) -> Iterator[ValidationResult]:
         ):
             unique_index[
                 UniqueIndexKey(graphql_type.name, graphql_field["name"], node.data)
-            ].append(node.path)
+            ].append(filename)
+
+        if (
+            isinstance(node.data, str)
+            and node.is_resource_ref()
+            and node.data not in bundle.resources
+        ):
+            yield ValidationResult(
+                filename=filename,
+                kind=ValidatedFileKind.REF,
+                result=_ValidationResult(
+                    status=ValidationStatus.ERROR,
+                    summary=f"ERROR: {filename}",
+                    reason="RESOURCE_FILE_NOT_FOUND",
+                    error=f"Resource file {node.data} not found in file {filename}",
+                    schema_url=node.schema_path or "",
+                ),
+            )
+
         match node.jsonpaths:
             case [*_, JSONPathField("$ref")]:
                 yield validate_ref(node)

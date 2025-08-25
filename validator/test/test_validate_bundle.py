@@ -77,6 +77,7 @@ def validation_result_key(result: ValidationResult) -> str:
         "file_schema_not_found.yml",
         "file_validation_error.yml",
         "file_validation_error_graphql.yml",
+        "file_resource_file_not_found.yml",
         "duplicate_unique_fields.yml",
         "resource_invalid_yaml_skip.yml",
         "resource_schema_not_found.yml",
