@@ -4,7 +4,7 @@ from collections.abc import Hashable, Iterable
 from dataclasses import dataclass
 from typing import Any, TypedDict
 
-from validator.bundle import Bundle, GraphqlField
+from validator.bundle import Bundle, GraphqlTypeV2
 from validator.jsonpath import (
     JSONPathField,
     JSONPathIndex,
@@ -161,16 +161,12 @@ def _build_crossref_unique_field_node(node: Node) -> ContextUniqueNode | None:
     path = node.data
     if (
         path
-        and (data := node.bundle.data.get(path))
+        and (data := node.resolve_ref())
         and (schema_path := data.get("$schema"))
         and (graphql_type := node.bundle.graphql_lookup.get_by_schema(schema_path))
         and (schema := node.bundle.schemas.get(schema_path))
     ):
-        props = {
-            prop
-            for prop, field in graphql_type.fields.items()
-            if _is_context_unique_field(field)
-        }
+        props = graphql_type.context_unique_field_names()
         if props:
             return ContextUniqueNode(
                 schema=schema,
@@ -191,7 +187,7 @@ def _build_array_item_unique_field_node(
         node.parent
         and isinstance(node.parent.data, dict)
         and (graphql_field := node.graphql_field)
-        and _is_context_unique_field(graphql_field)
+        and (GraphqlTypeV2.is_context_unique_field(graphql_field))
     ):
         return ContextUniqueNode(
             schema=node.parent.schema,
@@ -202,11 +198,6 @@ def _build_array_item_unique_field_node(
             jsonpath=build_jsonpath(node.jsonpaths[:-1]),
         )
     return None
-
-
-def _is_context_unique_field(graphql_field: GraphqlField) -> bool:
-    """Check if the field is unique or context unique."""
-    return any(graphql_field.get(field) for field in ["isUnique", "isContextUnique"])
 
 
 # TODO: this is for backward compatibility, use sha256sum on json string in the next version  # noqa: FIX002, TD002, TD003

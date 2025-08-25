@@ -41,6 +41,11 @@ class Node:
             and self.schema.get("$ref") == RESOURCE_REF
         )
 
+    def resolve_ref(self) -> dict[str, Any] | None:
+        if self.data and isinstance(self.data, str):
+            return self.bundle.data.get(self.data)
+        return None
+
 
 def traverse_data(bundle: Bundle) -> Iterator[Node]:
     """

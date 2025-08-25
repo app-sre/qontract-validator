@@ -9,8 +9,8 @@ import requests
 from jsonschema import Draft6Validator, RefResolver, SchemaError, ValidationError
 from yaml import YAMLError
 
-from validator.bundle import Bundle
-from validator.jsonpath import JSONPathField
+from validator.bundle import Bundle, GraphqlTypeV2
+from validator.jsonpath import JSONPath, JSONPathField, JSONPathIndex, build_jsonpath
 from validator.traverse import Node, traverse_data
 from validator.utils import load_yaml
 
@@ -49,10 +49,17 @@ class ValidationResult(TypedDict):
     result: _ValidationResult
 
 
-class UniqueIndexKey(NamedTuple):
+class UniqueConstraintKey(NamedTuple):
     graphql_type: str
     graphql_field: str
     value: Any
+
+
+class ContextUniqueConstraintKey(NamedTuple):
+    filename: str
+    jsonpath: str
+    field_names: str
+    identifier: str
 
 
 def get_handlers(
@@ -142,19 +149,13 @@ def validate_datafiles(bundle: Bundle) -> Iterator[ValidationResult]:
     for datafile_path, datafile in bundle.data.items():
         yield validate_file(bundle, datafile_path, datafile)
 
-    unique_index: defaultdict[UniqueIndexKey, Any] = defaultdict(list)
+    unique_constraint: defaultdict[UniqueConstraintKey, list[str]] = defaultdict(list)
+    context_unique_constraint: defaultdict[ContextUniqueConstraintKey, list[int]] = (
+        defaultdict(list)
+    )
 
     for node in traverse_data(bundle):
         filename = node.path
-        if (
-            (graphql_type := node.graphql_type)
-            and (graphql_field := node.graphql_field)
-            and graphql_field.get("isUnique")
-        ):
-            unique_index[
-                UniqueIndexKey(graphql_type.name, graphql_field["name"], node.data)
-            ].append(filename)
-
         if (
             isinstance(node.data, str)
             and node.is_resource_ref()
@@ -176,7 +177,20 @@ def validate_datafiles(bundle: Bundle) -> Iterator[ValidationResult]:
             case [*_, JSONPathField("$ref")]:
                 yield validate_ref(node)
 
-    for unique_key, filenames in unique_index.items():
+        if unique_constraint_key := build_unique_constraint_key_from_node(node):
+            unique_constraint[unique_constraint_key].append(filename)
+
+        match node.jsonpaths:
+            case [*_, JSONPathIndex(index), JSONPathField(field)]:
+                if (
+                    context_unique_constraint_key
+                    := build_context_unique_constraint_key_from_node(node, field)
+                ):
+                    context_unique_constraint[context_unique_constraint_key].append(
+                        index
+                    )
+
+    for unique_key, filenames in unique_constraint.items():
         if len(filenames) > 1:
             sorted_filenames = sorted(filenames)
             filename = sorted_filenames[0]
@@ -190,6 +204,82 @@ def validate_datafiles(bundle: Bundle) -> Iterator[ValidationResult]:
                     error=f"The field '{unique_key.graphql_field}' is repeated: {', '.join(sorted_filenames)}",
                 ),
             )
+
+    for context_unique_key, indices in context_unique_constraint.items():
+        if len(indices) > 1:
+            filename = context_unique_key.filename
+            duplicates = ", ".join(
+                f"{context_unique_key.jsonpath}/{index}" for index in indices
+            )
+            yield ValidationResult(
+                filename=filename,
+                kind=ValidatedFileKind.UNIQUE,
+                result=_ValidationResult(
+                    status=ValidationStatus.ERROR,
+                    summary=f"ERROR: {filename}",
+                    reason="DUPLICATE_CONTEXT_UNIQUE_FIELD",
+                    error=f"Context uniqueness error, file: {filename}, fields: {context_unique_key.field_names}, duplicates: {duplicates}",
+                ),
+            )
+
+
+def build_unique_constraint_key_from_node(node: Node) -> UniqueConstraintKey | None:
+    if (
+        (graphql_type := node.graphql_type)
+        and (graphql_field := node.graphql_field)
+        and graphql_field.get("isUnique")
+    ):
+        return UniqueConstraintKey(graphql_type.name, graphql_field["name"], node.data)
+    return None
+
+
+def build_context_unique_constraint_key(
+    filename: str,
+    jsonpaths: list[JSONPath],
+    identifier: str,
+    graphql_type: GraphqlTypeV2,
+) -> ContextUniqueConstraintKey | None:
+    context_unique_field_names = graphql_type.context_unique_field_names()
+    field_names = ", ".join(sorted(context_unique_field_names))
+    return ContextUniqueConstraintKey(
+        filename=filename,
+        jsonpath=build_jsonpath(jsonpaths),
+        field_names=field_names,
+        identifier=identifier,
+    )
+
+
+def build_context_unique_constraint_key_from_node(
+    node: Node,
+    field: str,
+) -> ContextUniqueConstraintKey | None:
+    match field:
+        case "$ref":
+            if (
+                (data := node.resolve_ref())
+                and (identifier := data.get("__identifier"))
+                and (schema_path := data.get("$schema"))
+                and (
+                    graphql_type := node.bundle.graphql_lookup.get_by_schema(
+                        schema_path
+                    )
+                )
+            ):
+                return build_context_unique_constraint_key(
+                    filename=node.path,
+                    jsonpaths=node.jsonpaths[:-2],
+                    identifier=identifier,
+                    graphql_type=graphql_type,
+                )
+        case "__identifier":
+            if graphql_type := node.graphql_type:
+                return build_context_unique_constraint_key(
+                    filename=node.path,
+                    jsonpaths=node.jsonpaths[:-2],
+                    identifier=node.data,
+                    graphql_type=graphql_type,
+                )
+    return None
 
 
 def validate_ref(node: Node) -> ValidationResult:

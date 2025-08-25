@@ -100,6 +100,33 @@ class GraphqlTypeV2:
             return field_map.get(field_value)
         return None
 
+    @staticmethod
+    def is_context_unique_field(graphql_field: GraphqlField) -> bool:
+        """
+        A field is context unique if isContextUnique is true, or if isUnique is true.
+
+        As global uniqueness implies context uniqueness.
+
+        Args:
+            graphql_field (GraphqlField): The GraphQL field to check.
+        Returns:
+            bool: True if the field is context unique, False otherwise.
+        """
+        return graphql_field.get(
+            "isContextUnique",
+            False,
+        ) or graphql_field.get(
+            "isUnique",
+            False,
+        )
+
+    def context_unique_field_names(self) -> set[str]:
+        return {
+            field_name
+            for field_name, field in self.fields.items()
+            if self.is_context_unique_field(field)
+        }
+
 
 class GraphqlLookup:
     def __init__(self, confs: list[dict[str, Any]]):
