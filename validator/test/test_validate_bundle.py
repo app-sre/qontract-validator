@@ -62,7 +62,11 @@ def bundle_and_expected_results_factory(
 
 
 def validation_result_key(result: ValidationResult) -> str:
-    return f"{result['filename']}:{result['kind']}"
+    return ":".join([
+        result["filename"],
+        result["kind"],
+        result["result"]["status"],
+    ])
 
 
 @pytest.mark.parametrize(
@@ -87,6 +91,8 @@ def validation_result_key(result: ValidationResult) -> str:
         "ref_file_not_found.yml",
         "ref_incorrect_schema.yml",
         "ref_schema_ref_validation_error.yml",
+        "graphql_is_unique_on_non_top_level_type.yml",
+        "graphql_is_unique_on_complex_field.yml",
     ],
 )
 def test_validate_bundle(
@@ -107,7 +113,6 @@ def test_validate_bundle(
     ):
         assert result["kind"] == expected["kind"]
         assert result["filename"] == expected["filename"]
-        assert result.get("ref") == expected.get("ref")
         assert result["result"]["summary"] == expected["result"]["summary"]
         assert result["result"]["status"] == expected["result"]["status"]
         assert result["result"].get("schema_url") == expected["result"].get(

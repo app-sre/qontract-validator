@@ -138,6 +138,7 @@ class GraphqlLookup:
         self.type_name_by_schema = self._build_type_name_by_schema(
             graphql_types=self.graphql_types,
         )
+        self.schema_by_type_name = {v: k for k, v in self.type_name_by_schema.items()}
 
     @staticmethod
     def _build_graphql_type(conf: Mapping[str, Any]) -> GraphqlTypeV2:

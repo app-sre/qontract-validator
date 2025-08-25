@@ -14,6 +14,8 @@ from validator.jsonpath import JSONPath, JSONPathField, JSONPathIndex, build_jso
 from validator.traverse import Node, traverse_data
 from validator.utils import load_yaml
 
+GRAPHQL_FILE_NAME = "graphql-schemas/schema.yml"
+
 
 class MissingSchemaFileError(Exception):
     def __init__(self, path):
@@ -440,9 +442,34 @@ def validate_graphql(bundle: Bundle) -> Iterator[ValidationResult]:
     if isinstance(bundle.graphql, dict):
         yield validate_file(
             bundle=bundle,
-            filename="graphql-schemas/schema.yml",
+            filename=GRAPHQL_FILE_NAME,
             data=bundle.graphql,
         )
+
+    is_unique_fields = (
+        (graphql_type_name, graphql_field)
+        for graphql_type_name, graphql_type in bundle.graphql_lookup.graphql_types.items()
+        for graphql_field in graphql_type.fields.values()
+        if "isUnique" in graphql_field
+    )
+    for graphql_type_name, graphql_field in is_unique_fields:
+        if graphql_type_name not in bundle.graphql_lookup.schema_by_type_name:
+            yield build_error_validation_result(
+                filename=GRAPHQL_FILE_NAME,
+                kind=ValidatedFileKind.SCHEMA,
+                reason="IS_UNIQUE_ON_NON_TOP_LEVEL_TYPE",
+                error=f"isUnique set on {graphql_type_name}.{graphql_field['name']},"
+                f" which is not a top-level type, add datafile to {graphql_type_name}"
+                " if there is a datafile mapping to it.",
+            )
+        if graphql_field["type"] in bundle.graphql_lookup.graphql_types:
+            yield build_error_validation_result(
+                filename=GRAPHQL_FILE_NAME,
+                kind=ValidatedFileKind.SCHEMA,
+                reason="IS_UNIQUE_ON_COMPLEX_FIELD",
+                error=f"isUnique set on {graphql_type_name}.{graphql_field['name']},"
+                f" type {graphql_field['type']} is not a simple type",
+            )
 
 
 def validate_bundle(
