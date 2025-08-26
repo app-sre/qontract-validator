@@ -138,7 +138,10 @@ def build_context_unique_node(node: Node) -> ContextUniqueNode | None:
     If the current traversed node is directly inside an array item,
     and current graphql field has isUnique or isContextUnique set to true,
     then a UniqueFieldNode is created.
-    For crossref field ($ref), it will try to find all unique fields from target file top level graphql type fields.
+    In the case of the field has `$ref` in it, the value of `$ref` is used literally.
+
+    For crossref field ($ref), if it's directly inside array, which means the whole object is pointing to another file,
+    it will try to find all unique fields from target file top level graphql type fields.
     Non-top level graphql type fields are covered by non crossref field.
 
     Args:
@@ -153,6 +156,9 @@ def build_context_unique_node(node: Node) -> ContextUniqueNode | None:
                 if field == "$ref"
                 else _build_array_item_unique_field_node(node, field)
             )
+        case [*_, JSONPathIndex(), JSONPathField(field), JSONPathField("$ref")]:
+            assert node.parent  # for mypy, node.parent must exist given this jsonpath pattern
+            return _build_array_item_unique_field_node(node.parent, field)
         case _:
             return None
 

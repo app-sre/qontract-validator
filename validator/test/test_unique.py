@@ -30,6 +30,10 @@ from validator.postprocess_v2 import postprocess_bundle
             "context_unique_crossref_array_duplicate.expected.yml",
         ),
         (
+            "context_unique_crossref_field.yml",
+            "context_unique_crossref_field.expected.yml",
+        ),
+        (
             "unique_crossref_array_duplicate.yml",
             "unique_crossref_array_duplicate.expected.yml",
         ),
