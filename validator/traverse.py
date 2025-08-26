@@ -61,16 +61,19 @@ def traverse_data(bundle: Bundle) -> Iterator[Node]:
     for datafile_path, datafile in bundle.data.items():
         datafile_schema = datafile.get("$schema")
         schema = bundle.schemas.get(datafile_schema, {}) if datafile_schema else None
-        graphql_type_name = (
-            graphql_type.name
-            if (
-                datafile_schema
-                and (
-                    graphql_type := bundle.graphql_lookup.get_by_schema(datafile_schema)
-                )
-            )
+        graphql_type = (
+            bundle.graphql_lookup.get_by_schema(datafile_schema)
+            if datafile_schema
             else None
         )
+        schema_info = _resolve_schema(
+            schema_path=datafile_schema,
+            schema=schema,
+            bundle=bundle,
+            data=datafile,
+            graphql_type=graphql_type,
+        )
+        graphql_type_name = _get_init_graphql_type_name(bundle, graphql_type, datafile)
         node = Node(
             bundle=bundle,
             data=datafile,
@@ -79,12 +82,26 @@ def traverse_data(bundle: Bundle) -> Iterator[Node]:
             graphql_type_name=graphql_type_name,
             jsonpaths=[],
             path=datafile_path,
-            schema=schema,
-            schema_one_of_root=None,
-            schema_path=datafile_schema,
+            schema=schema_info.schema,
+            schema_one_of_root=schema_info.schema_one_of_root,
+            schema_path=schema_info.schema_path,
             parent=None,
         )
         yield from _traverse_node(node)
+
+
+def _get_init_graphql_type_name(
+    bundle: Bundle,
+    graphql_type: GraphqlTypeV2 | None,
+    datafile: Any,
+) -> str | None:
+    if not graphql_type:
+        return None
+    if resolved_graphql_type := _resolve_graphql_interface_type(
+        graphql_type, bundle, datafile
+    ):
+        return resolved_graphql_type.name
+    return graphql_type.name
 
 
 def _traverse_node(node: Node) -> Iterator[Node]:

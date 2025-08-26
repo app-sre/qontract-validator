@@ -250,12 +250,27 @@ def validate_datafiles(bundle: Bundle) -> Iterator[ValidationResult]:
 
 
 def build_unique_constraint_key_from_node(node: Node) -> UniqueConstraintKey | None:
-    if (
-        (graphql_type := node.graphql_type)
-        and (graphql_field := node.graphql_field)
-        and graphql_field.get("isUnique")
-    ):
-        return UniqueConstraintKey(graphql_type.name, graphql_field["name"], node.data)
+    if (graphql_type := node.graphql_type) and (graphql_field := node.graphql_field):
+        graphql_field_name = graphql_field["name"]
+        if (
+            graphql_type.interface
+            and (
+                graphql_interface_type := node.bundle.graphql_lookup.get_by_type_name(
+                    graphql_type.interface
+                )
+            )
+            and (
+                graphql_interface_field := graphql_interface_type.get_field(
+                    graphql_field_name
+                )
+            )
+            and graphql_interface_field.get("isUnique")
+        ):
+            return UniqueConstraintKey(
+                graphql_interface_type.name, graphql_field_name, node.data
+            )
+        if graphql_field.get("isUnique"):
+            return UniqueConstraintKey(graphql_type.name, graphql_field_name, node.data)
     return None
 
 
@@ -453,7 +468,7 @@ def validate_graphql(bundle: Bundle) -> Iterator[ValidationResult]:
         if "isUnique" in graphql_field
     )
     for graphql_type_name, graphql_field in is_unique_fields:
-        if graphql_type_name not in bundle.graphql_lookup.schema_by_type_name:
+        if graphql_type_name not in bundle.graphql_lookup.top_level_graphql_type_names:
             yield build_error_validation_result(
                 filename=GRAPHQL_FILE_NAME,
                 kind=ValidatedFileKind.SCHEMA,

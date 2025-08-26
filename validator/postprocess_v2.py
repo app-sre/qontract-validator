@@ -157,7 +157,7 @@ def build_context_unique_node(node: Node) -> ContextUniqueNode | None:
                 else _build_array_item_unique_field_node(node, field)
             )
         case [*_, JSONPathIndex(), JSONPathField(field), JSONPathField("$ref")]:
-            assert node.parent  # for mypy, node.parent must exist given this jsonpath pattern
+            assert node.parent  # node.parent must exist given this jsonpath pattern
             return _build_array_item_unique_field_node(node.parent, field)
         case _:
             return None

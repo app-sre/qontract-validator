@@ -1,5 +1,5 @@
 import json
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import (
     dataclass,
     field,
@@ -67,6 +67,7 @@ class GraphqlTypeV2:
     fields: dict[str, GraphqlField]
     datafile: str | None
     is_interface: bool
+    interface: str | None
     interface_resolve: InterfaceResolve | None
 
     def get_field(self, field_name: str) -> GraphqlField | None:
@@ -138,7 +139,10 @@ class GraphqlLookup:
         self.type_name_by_schema = self._build_type_name_by_schema(
             graphql_types=self.graphql_types,
         )
-        self.schema_by_type_name = {v: k for k, v in self.type_name_by_schema.items()}
+        self.top_level_graphql_type_names = self._build_top_level_graphql_type_names(
+            graphql_types=self.graphql_types.values(),
+            graphql_type_names_with_schema=self.type_name_by_schema.values(),
+        )
 
     @staticmethod
     def _build_graphql_type(conf: Mapping[str, Any]) -> GraphqlTypeV2:
@@ -152,8 +156,22 @@ class GraphqlLookup:
             fields=fields,
             datafile=conf.get("datafile"),
             is_interface=conf.get("isInterface", False),
+            interface=conf.get("interface"),
             interface_resolve=conf.get("interfaceResolve"),
         )
+
+    @staticmethod
+    def _build_top_level_graphql_type_names(
+        graphql_types: Iterable[GraphqlTypeV2],
+        graphql_type_names_with_schema: Iterable[str],
+    ) -> set[str]:
+        graphql_type_names = set(graphql_type_names_with_schema)
+        for graphql_type in graphql_types:
+            if graphql_type.interface and (
+                graphql_type.interface in graphql_type_names
+            ):
+                graphql_type_names.add(graphql_type.name)
+        return graphql_type_names
 
     @staticmethod
     def _build_type_name_by_schema(

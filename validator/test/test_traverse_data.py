@@ -58,6 +58,7 @@ def node_key(node: Node) -> str:
         "crossref_interface_schema_field.yml",
         "embedded_schema_ref_field.yml",
         "one_of_crossref_schema_field.yml",
+        "one_of_interface_field_map_field.yml",
         "one_of_ref_array_field_map_field.yml",
         "one_of_ref_field_map_field.yml",
         "simple_field.yml",
