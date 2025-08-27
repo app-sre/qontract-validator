@@ -15,6 +15,7 @@ graphql:
     - name: ref_field
       type: AnotherSchema_v1
   - name: AnotherSchema_v1
+    datafile: "another-schema-1.yml"
     fields:
     - name: simple_field
       type: string

@@ -38,8 +38,8 @@ from validator.postprocess_v2 import postprocess_bundle
             "unique_crossref_array_duplicate.expected.yml",
         ),
         (
-            "unique_duplicate.yml",
-            "unique_duplicate.yml",
+            "unique_not_in_array.yml",
+            "unique_not_in_array.yml",
         ),
         (
             "unique_ref_duplicate.yml",
@@ -50,8 +50,8 @@ from validator.postprocess_v2 import postprocess_bundle
             "unique_ref_array_duplicate_multiple_files.expected.yml",
         ),
         (
-            "unique_crossref_duplicate.yml",
-            "unique_crossref_duplicate.yml",
+            "unique_crossref_not_in_array.yml",
+            "unique_crossref_not_in_array.yml",
         ),
         (
             "unique_crossref_array_duplicate_multiple_files.yml",
