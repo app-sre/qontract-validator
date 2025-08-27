@@ -1,10 +1,16 @@
+import json
 from collections.abc import Callable
+from dataclasses import asdict
+from io import StringIO
+from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 
 from validator.bundle import Bundle
-from validator.validator import ValidationResult, validate_bundle
+from validator.utils import dump_json
+from validator.validator import ValidationResult, main, validate_bundle
 
 
 @pytest.fixture
@@ -98,13 +104,14 @@ def validation_result_key(result: ValidationResult) -> str:
 )
 def test_validate_bundle(
     bundle_and_expected_results_factory: Callable[
-        [str], tuple[Bundle, list[ValidationResult]]
+        [str],
+        tuple[Bundle, list[ValidationResult]],
     ],
     fixture: str,
 ) -> None:
     bundle, expected_results = bundle_and_expected_results_factory(fixture)
 
-    results = validate_bundle(bundle)
+    results = list(validate_bundle(bundle))
 
     assert len(results) == len(expected_results)
     for result, expected in zip(
@@ -121,3 +128,71 @@ def test_validate_bundle(
         )
         assert result["result"].get("reason") == expected["result"].get("reason")
         assert expected["result"].get("error", "") in result["result"].get("error", "")
+
+
+def test_validator_main(
+    bundle_and_expected_results_factory: Callable[
+        [str],
+        tuple[Bundle, list[ValidationResult]],
+    ],
+    tmp_path: Path,
+) -> None:
+    bundle, expected_results = bundle_and_expected_results_factory("valid.yml")
+    bundlefile = tmp_path / "bundle.json"
+    with bundlefile.open("w", encoding="utf-8") as f:
+        dump_json(asdict(bundle), f, compact=True)
+
+    mock_args = [
+        "qontract-validator",
+        str(bundlefile),
+    ]
+
+    captured_output = StringIO()
+    with (
+        patch("sys.argv", mock_args),
+        patch("sys.stdout", captured_output),
+    ):
+        main()
+
+    output = captured_output.getvalue()
+    sorted_expected_results = sorted(expected_results, key=validation_result_key)
+    sorted_actual_results = sorted(json.loads(output), key=validation_result_key)
+    assert sorted_actual_results == sorted_expected_results
+
+
+def test_validator_main_errors(
+    bundle_and_expected_results_factory: Callable[
+        [str],
+        tuple[Bundle, list[ValidationResult]],
+    ],
+    tmp_path: Path,
+) -> None:
+    bundle, expected_results = bundle_and_expected_results_factory(
+        "schema_missing_schema_url.yml"
+    )
+    bundlefile = tmp_path / "bundle.json"
+    with bundlefile.open("w", encoding="utf-8") as f:
+        dump_json(asdict(bundle), f, compact=True)
+
+    mock_args = [
+        "qontract-validator",
+        "--only-errors",
+        str(bundlefile),
+    ]
+
+    captured_output = StringIO()
+    with (
+        patch("sys.argv", mock_args),
+        patch("sys.stdout", captured_output),
+        pytest.raises(SystemExit) as excinfo,
+    ):
+        main()
+
+    assert excinfo.value.code == 1
+    output = captured_output.getvalue()
+    sorted_expected_results = sorted(
+        (r for r in expected_results if r["result"]["status"] == "ERROR"),
+        key=validation_result_key,
+    )
+    sorted_actual_results = sorted(json.loads(output), key=validation_result_key)
+    assert sorted_actual_results == sorted_expected_results

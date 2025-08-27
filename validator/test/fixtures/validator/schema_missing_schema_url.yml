@@ -60,7 +60,7 @@ expected_results:
   result:
     status: ERROR
     reason: MISSING_SCHEMA_URL
-    error: ""
+    error: "Missing schema URL in file /schema-1.yml"
     summary: "ERROR: /schema-1.yml"
 - kind: FILE
   filename: file-1-schema-1.yml

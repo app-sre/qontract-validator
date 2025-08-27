@@ -1,4 +1,4 @@
-import json
+import argparse
 import logging
 import re
 import sys
@@ -6,13 +6,12 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-import click
-
 from validator.bundle import Bundle
 from validator.postprocess import postprocess_bundle
 from validator.utils import (
     SUPPORTED_EXTENSIONS,
     FileType,
+    dump_json,
     get_checksum,
     get_file_type,
     parse_anymarkup_file,
@@ -127,36 +126,71 @@ def bundle_graphql(graphql_schema_file: Path):
     return content
 
 
-@click.command()
-@click.option(
-    "--thread-pool-size", default=10, help="number of threads to run in parallel."
-)
-@click.argument("schema-dir", type=click.Path(exists=True))
-@click.argument("graphql-schema-file", type=click.Path(exists=True))
-@click.argument("data-dir", type=click.Path(exists=True))
-@click.argument("resource-dir", type=click.Path(exists=True))
-@click.argument("git-commit")
-@click.argument("git-commit-timestamp")
-def main(
-    thread_pool_size,
-    schema_dir,
-    graphql_schema_file,
-    data_dir,
-    resource_dir,
-    git_commit,
-    git_commit_timestamp,
-):
+def build_bundle(
+    thread_pool_size: int,
+    schema_dir: Path,
+    graphql_schema_file: Path,
+    data_dir: Path,
+    resource_dir: Path,
+    git_commit: str,
+    git_commit_timestamp: str,
+) -> Bundle:
     bundle = Bundle(
         git_commit=git_commit,
         git_commit_timestamp=git_commit_timestamp,
-        schemas=bundle_datafiles(Path(schema_dir), thread_pool_size),
-        graphql=bundle_graphql(Path(graphql_schema_file)),
-        data=bundle_datafiles(
-            Path(data_dir), thread_pool_size, checksum_field_name=CHECKSUM_SCHEMA_FIELD
+        schemas=bundle_datafiles(
+            data_dir=schema_dir,
+            thread_pool_size=thread_pool_size,
         ),
-        resources=bundle_resources(Path(resource_dir), thread_pool_size),
+        graphql=bundle_graphql(graphql_schema_file),
+        data=bundle_datafiles(
+            data_dir=data_dir,
+            thread_pool_size=thread_pool_size,
+            checksum_field_name=CHECKSUM_SCHEMA_FIELD,
+        ),
+        resources=bundle_resources(
+            resource_dir=resource_dir,
+            thread_pool_size=thread_pool_size,
+        ),
     )
-
     postprocess_bundle(bundle, checksum_field_name=CHECKSUM_SCHEMA_FIELD)
+    return bundle
 
-    sys.stdout.write(json.dumps(asdict(bundle), separators=(",", ":")) + "\n")
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Bundle datafiles, schemas, graphql schema and resources"
+    )
+    parser.add_argument(
+        "--thread-pool-size",
+        type=int,
+        default=10,
+        help="number of threads to run in parallel.",
+    )
+    parser.add_argument("schema_dir", help="Schema directory path")
+    parser.add_argument("graphql_schema_file", help="GraphQL schema file path")
+    parser.add_argument("data_dir", help="Data directory path")
+    parser.add_argument("resource_dir", help="Resource directory path")
+    parser.add_argument("git_commit", help="Git commit hash")
+    parser.add_argument("git_commit_timestamp", help="Git commit timestamp")
+    args = parser.parse_args()
+
+    schema_dir = Path(args.schema_dir)
+    graphql_schema_file = Path(args.graphql_schema_file)
+    data_dir = Path(args.data_dir)
+    resource_dir = Path(args.resource_dir)
+
+    for path in [schema_dir, graphql_schema_file, data_dir, resource_dir]:
+        if not path.exists():
+            parser.error(f"Path does not exist: {path}")
+
+    bundle = build_bundle(
+        thread_pool_size=args.thread_pool_size,
+        schema_dir=schema_dir,
+        graphql_schema_file=graphql_schema_file,
+        data_dir=data_dir,
+        resource_dir=resource_dir,
+        git_commit=args.git_commit,
+        git_commit_timestamp=args.git_commit_timestamp,
+    )
+    dump_json(asdict(bundle), sys.stdout, compact=True)

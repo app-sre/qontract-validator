@@ -2,8 +2,11 @@ import hashlib
 import json
 from enum import StrEnum
 from pathlib import Path, PurePath
+from typing import IO, Any
 
 import yaml
+
+JSON_COMPACT_SEPARATORS = (",", ":")
 
 
 class FileType(StrEnum):
@@ -30,6 +33,18 @@ def load_yaml(data: bytes) -> dict:
     if hasattr(yaml, "CSafeLoader"):
         return yaml.load(data, Loader=yaml.CSafeLoader)
     return yaml.load(data, Loader=yaml.SafeLoader)
+
+
+def dump_json(
+    data: Any,
+    out: IO,
+    *,
+    compact: bool = False,
+    indent: int | None = None,
+) -> None:
+    separators = JSON_COMPACT_SEPARATORS if compact else None
+    json.dump(data, out, indent=indent, separators=separators)
+    out.write("\n")
 
 
 def parse_anymarkup_file(

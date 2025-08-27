@@ -1,14 +1,14 @@
-import itertools
-import json
+import argparse
 import logging
 import sys
 from collections import defaultdict
 from collections.abc import Callable, Iterator, Sized
 from enum import StrEnum
 from functools import cache
-from typing import IO, Any, NamedTuple, NotRequired, TypedDict
+from itertools import chain
+from pathlib import Path
+from typing import Any, NamedTuple, NotRequired, TypedDict
 
-import click
 import requests
 from jsonschema import Draft6Validator, RefResolver, SchemaError, ValidationError
 from yaml import YAMLError
@@ -20,7 +20,7 @@ from validator.bundle import (
 )
 from validator.jsonpath import JSONPath, JSONPathField, JSONPathIndex, build_jsonpath
 from validator.traverse import Node, traverse_data
-from validator.utils import load_yaml
+from validator.utils import dump_json, load_yaml
 
 GRAPHQL_FILE_NAME = "graphql-schemas/schema.yml"
 
@@ -503,37 +503,40 @@ def validate_graphql(bundle: Bundle) -> Iterator[ValidationResult]:
 
 def validate_bundle(
     bundle: Bundle,
-) -> list[ValidationResult]:
-    return list(
-        itertools.chain(
-            validate_schemas(bundle),
-            validate_datafiles(bundle),
-            validate_resources(bundle),
-            validate_graphql(bundle),
-        )
+) -> chain[ValidationResult]:
+    return chain(
+        validate_schemas(bundle),
+        validate_datafiles(bundle),
+        validate_resources(bundle),
+        validate_graphql(bundle),
     )
 
 
-@click.command()
-@click.option("--only-errors", is_flag=True, help="Print only errors")
-@click.argument("bundlefile", type=click.File("rb"))
-def main(
-    *,
-    only_errors: bool,
-    bundlefile: IO,
-) -> None:
-    bundle = load_bundle(bundlefile)
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Validate bundle file")
+    parser.add_argument("--only-errors", action="store_true", help="Print only errors")
+    parser.add_argument("bundlefile", help="Path of bundle file to validate")
+    args = parser.parse_args()
 
+    bundlefile = Path(args.bundlefile)
+    if not bundlefile.exists():
+        parser.error(f"File not found: {bundlefile}")
+
+    with bundlefile.open(mode="rb") as f:
+        bundle = load_bundle(f)
     results = validate_bundle(bundle)
 
-    # Calculate errors
-    errors = [r for r in results if r["result"]["status"] == ValidationStatus.ERROR]
-
-    # Output
-    if only_errors:
-        sys.stdout.write(json.dumps(errors, indent=2) + "\n")
+    if args.only_errors:
+        errors = [r for r in results if r["result"]["status"] == ValidationStatus.ERROR]
+        dump_json(errors, sys.stdout, indent=2)
     else:
-        sys.stdout.write(json.dumps(results, indent=2) + "\n")
+        errors = []
+        all_results = []
+        for r in results:
+            if r["result"]["status"] == ValidationStatus.ERROR:
+                errors.append(r)
+            all_results.append(r)
+        dump_json(all_results, sys.stdout, indent=2)
 
-    if len(errors) > 0:
+    if errors:
         sys.exit(1)

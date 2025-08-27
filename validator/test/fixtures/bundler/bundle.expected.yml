@@ -1,0 +1,39 @@
+schemas:
+  "/schema-1.yml":
+    $schema: "/metaschema-1.json"
+    version: '1.0'
+    additionalProperties: false
+    properties:
+      $schema:
+        type: string
+        enum:
+        - "/schema-1.yml"
+      $file_sha256sum:
+        type: string
+        description: sha256sum of the datafile
+      simple_field:
+        type: string
+graphql:
+  $schema: "/app-interface/graphql-schemas-1.yml"
+  confs:
+  - name: Schema_v1
+    fields:
+    - name: simple_field
+      type: string
+  - name: Query
+    fields:
+    - type: Schema_v1
+      name: schema_v1
+      datafileSchema: "/schema-1.yml"
+data:
+  /file-1-schema-1.yml:
+    $schema: /schema-1.yml
+    simple_field: bla
+    $file_sha256sum: "8bfd003256124c19c8c3357d31d51a9fd5b350e95b31c700a52854404b85b8ba"
+resources:
+  /resource-1.yml:
+    $schema: null
+    backrefs: []
+    content: "abc\n"
+    path: "/resource-1.yml"
+    sha256sum: "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb"
