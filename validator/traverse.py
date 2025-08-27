@@ -2,7 +2,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any, NamedTuple, Self
 
-from validator.bundle import RESOURCE_REF, Bundle, GraphqlField, GraphqlTypeV2
+from validator.bundle import RESOURCE_REF, Bundle, GraphqlField, GraphqlType
 from validator.jsonpath import JSONPath, JSONPathField, JSONPathIndex
 
 
@@ -21,7 +21,7 @@ class Node:
     parent: Self | None
 
     @property
-    def graphql_type(self) -> GraphqlTypeV2 | None:
+    def graphql_type(self) -> GraphqlType | None:
         if self.graphql_type_name:
             return self.bundle.graphql_lookup.get_by_type_name(self.graphql_type_name)
         return None
@@ -92,7 +92,7 @@ def traverse_data(bundle: Bundle) -> Iterator[Node]:
 
 def _get_init_graphql_type_name(
     bundle: Bundle,
-    graphql_type: GraphqlTypeV2 | None,
+    graphql_type: GraphqlType | None,
     datafile: Any,
 ) -> str | None:
     if not graphql_type:
@@ -119,7 +119,7 @@ def _traverse_node(node: Node) -> Iterator[Node]:
 
 
 class GraphqlInfo(NamedTuple):
-    graphql_type: GraphqlTypeV2 | None
+    graphql_type: GraphqlType | None
     graphql_field: GraphqlField | None
 
 
@@ -221,7 +221,7 @@ def _next_node(
     schema: Any,
     data: Any,
     jsonpaths: list[JSONPath],
-    graphql_type: GraphqlTypeV2 | None = None,
+    graphql_type: GraphqlType | None = None,
     graphql_field: GraphqlField | None = None,
 ) -> Node:
     """
@@ -235,7 +235,7 @@ def _next_node(
         schema (Any): The schema for the new node.
         data (Any): The data for the new node.
         jsonpaths (list[JSONPath]): The JSON paths for the new node.
-        graphql_type (GraphqlTypeV2 | None): The GraphQL type for the new
+        graphql_type (GraphqlType | None): The GraphQL type for the new
         graphql_field (GraphqlField | None): The GraphQL field for the new node.
     Returns:
         Node: A new Node instance with the updated data, schema, and GraphQL type information.
@@ -287,10 +287,10 @@ def _next_node(
 
 
 def _resolve_graphql_interface_type(
-    graphql_type: GraphqlTypeV2 | None,
+    graphql_type: GraphqlType | None,
     bundle: Bundle,
     data: Any,
-) -> GraphqlTypeV2 | None:
+) -> GraphqlType | None:
     """
     Resolve the GraphQL interface type based on the data.
 
@@ -298,11 +298,11 @@ def _resolve_graphql_interface_type(
     Only resolve if the GraphQL field is an interface with fieldMap strategy.
 
     Args:
-        graphql_type (GraphqlTypeV2 | None): The GraphQL type to resolve.
+        graphql_type (GraphqlType | None): The GraphQL type to resolve.
         bundle (Bundle): The bundle containing the GraphQL types.
         data (Any): The data to resolve the interface type name.
     Returns:
-        GraphqlTypeV2 | None: The resolved GraphQL type if it is an interface, otherwise None.
+        GraphqlType | None: The resolved GraphQL type if it is an interface, otherwise None.
     """
     if graphql_type is None or not graphql_type.is_interface:
         return None
@@ -316,7 +316,7 @@ def _resolve_schema(
     schema: Any,
     bundle: Bundle,
     data: Any,
-    graphql_type: GraphqlTypeV2 | None,
+    graphql_type: GraphqlType | None,
 ) -> SchemaInfo:
     """
     Resolve the schema based on the schema path, schema, bundle, data, and GraphQL type.
@@ -331,7 +331,7 @@ def _resolve_schema(
         schema (Any): The schema to resolve.
         bundle (Bundle): The bundle containing the schemas.
         data (Any): The data to resolve the schema against.
-        graphql_type (GraphqlTypeV2 | None): The GraphQL type to resolve the schema against.
+        graphql_type (GraphqlType | None): The GraphQL type to resolve the schema against.
     Returns:
     """
     schema_info = _resolve_ref_schema(

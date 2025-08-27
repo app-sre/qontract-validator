@@ -1,33 +1,31 @@
-import contextlib
 import itertools
 import json
 import logging
 import sys
 from collections import defaultdict
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sized
 from enum import StrEnum
 from functools import cache
-from typing import IO, Any, NotRequired, TypedDict
+from typing import IO, Any, NamedTuple, NotRequired, TypedDict
 
 import click
-import jsonschema
 import requests
-import yaml
-from jsonschema import Draft6Validator
+from jsonschema import Draft6Validator, RefResolver, SchemaError, ValidationError
+from yaml import YAMLError
 
 from validator.bundle import (
     Bundle,
+    GraphqlType,
     load_bundle,
 )
+from validator.jsonpath import JSONPath, JSONPathField, JSONPathIndex, build_jsonpath
+from validator.traverse import Node, traverse_data
 from validator.utils import load_yaml
 
+GRAPHQL_FILE_NAME = "graphql-schemas/schema.yml"
+
+
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.WARNING)
-
-
-class IncorrectSchemaError(Exception):
-    def __init__(self, got, expecting):
-        message = f"incorrect schema: got `{got}`, expecting `{expecting}`"
-        super(Exception, self).__init__(message)
 
 
 class MissingSchemaFileError(Exception):
@@ -37,19 +35,10 @@ class MissingSchemaFileError(Exception):
         super(Exception, self).__init__(message)
 
 
-class DuplicateUniqueFieldError(Exception):
-    pass
-
-
-class NotFoundError(Exception):
-    pass
-
-
 class ValidatedFileKind(StrEnum):
     SCHEMA = "SCHEMA"
-    DATA_FILE = "FILE"
+    FILE = "FILE"
     REF = "REF"
-    NONE = "NONE"
     UNIQUE = "UNIQUE"
 
 
@@ -64,346 +53,85 @@ class _ValidationResult(TypedDict):
     schema_url: NotRequired[str]
     reason: NotRequired[str]
     error: NotRequired[str]
-    ref: NotRequired[str]
-    ptr: NotRequired[str]
-    meta_schema_url: NotRequired[str]
 
 
 class ValidationResult(TypedDict):
     filename: str
     kind: ValidatedFileKind
-    ref: NotRequired[str]
     result: _ValidationResult
 
 
-class ValidationOK:
-    def __init__(
-        self,
-        kind: ValidatedFileKind,
-        filename: str,
-        schema_url: str,
-    ) -> None:
-        self.kind = kind
-        self.filename = filename
-        self.schema_url = schema_url
-        self.summary = f"OK: {self.filename} ({self.schema_url})"
-
-    def dump(self) -> ValidationResult:
-        return ValidationResult(
-            filename=self.filename,
-            kind=self.kind,
-            result=_ValidationResult(
-                summary=self.summary,
-                status=ValidationStatus.OK,
-                schema_url=self.schema_url,
-            ),
-        )
+class UniqueConstraintKey(NamedTuple):
+    graphql_type: str
+    graphql_field: str
+    value: Any
 
 
-class ValidationRefOK:
-    def __init__(
-        self,
-        kind: ValidatedFileKind,
-        filename: str,
-        ref: str,
-        schema_url: str,
-    ) -> None:
-        self.kind = kind
-        self.filename = filename
-        self.schema_url = schema_url
-        self.ref = ref
-        self.summary = f"OK: {self.filename} ({self.ref}) ({self.schema_url})"
-
-    def dump(self) -> ValidationResult:
-        return ValidationResult(
-            filename=self.filename,
-            kind=self.kind,
-            ref=self.ref,
-            result=_ValidationResult(
-                summary=self.summary,
-                status=ValidationStatus.OK,
-                schema_url=self.schema_url,
-                ref=self.ref,
-            ),
-        )
+class ContextUniqueConstraintKey(NamedTuple):
+    filename: str
+    jsonpath: str
+    field_names: str
+    identifier: str
 
 
-class ValidationError:
-    def __init__(
-        self,
-        kind: ValidatedFileKind,
-        filename: str,
-        reason: str,
-        error: Exception,
-        *,
-        meta_schema_url: str | None = None,
-        ref: str | None = None,
-        schema_url: str | None = None,
-        ptr: str | None = None,
-    ) -> None:
-        self.kind = kind
-        self.filename = filename
-        self.reason = reason
-        self.error = error
-        self.meta_schema_url = meta_schema_url
-        self.ref = ref
-        self.schema_url = schema_url
-        self.ptr = ptr
-        self.summary = f"ERROR: {self.filename}"
+class ContextUniqueConstraintTuple(NamedTuple):
+    key: ContextUniqueConstraintKey
+    value: int
 
-    def dump(self):
-        return ValidationResult(
-            filename=self.filename,
-            kind=self.kind,
-            result=_ValidationResult(
-                summary=self.summary,
-                status=ValidationStatus.ERROR,
-                reason=self.reason,
-                error=str(self.error),
-                meta_schema_url=self.meta_schema_url,
-                ref=self.ref,
-                schema_url=self.schema_url,
-                ptr=self.ptr,
-            ),
-        )
+
+def build_ok_validation_result(
+    filename: str,
+    kind: ValidatedFileKind,
+    scheme_url: str | None = None,
+    ref: str | None = None,
+) -> ValidationResult:
+    base_summary = f"OK: {filename}"
+    ref_summary = f" ({ref})" if ref else ""
+    schema_summary = f" ({scheme_url})" if scheme_url else ""
+    result = _ValidationResult(
+        status=ValidationStatus.OK,
+        summary=f"{base_summary}{ref_summary}{schema_summary}",
+    )
+    if scheme_url:
+        result["schema_url"] = scheme_url
+    return ValidationResult(
+        filename=filename,
+        kind=kind,
+        result=result,
+    )
+
+
+def build_error_validation_result(
+    filename: str,
+    kind: ValidatedFileKind,
+    reason: str,
+    error: str,
+    schema_url: str | None = None,
+) -> ValidationResult:
+    base_summary = f"ERROR: {filename}"
+    schema_summary = f" ({schema_url})" if schema_url else ""
+    result = _ValidationResult(
+        status=ValidationStatus.ERROR,
+        reason=reason,
+        summary=f"{base_summary}{schema_summary}",
+        error=error,
+    )
+    if schema_url:
+        result["schema_url"] = schema_url
+    return ValidationResult(
+        filename=filename,
+        kind=kind,
+        result=result,
+    )
 
 
 def get_handlers(
-    schemas_bundle: dict[str, dict[str, Any]],
+    bundle: Bundle,
 ) -> dict[str, Callable]:
     def get_schema(uri: str) -> dict[str, Any]:
-        return schemas_bundle[uri]
+        return bundle.schemas[uri]
 
     return {"": get_schema}
-
-
-def validate_schema(
-    schemas_bundle: dict[str, dict[str, Any]],
-    filename: str,
-    schema_data: dict[str, Any],
-) -> ValidationError | ValidationOK:
-    kind = ValidatedFileKind.SCHEMA
-
-    logging.info("validating schema: %s", filename)
-
-    meta_schema_url = schema_data.get("$schema")
-    if meta_schema_url is None:
-        return ValidationError(
-            kind,
-            filename,
-            "MISSING_SCHEMA_URL",
-            NotFoundError(f"Missing schema URL in file {filename}"),
-        )
-
-    meta_schema = schemas_bundle.get(meta_schema_url)
-    if meta_schema is None:
-        meta_schema = fetch_schema(meta_schema_url)
-
-    resolver = jsonschema.RefResolver(
-        filename, schema_data, handlers=get_handlers(schemas_bundle)
-    )
-
-    try:
-        Draft6Validator.check_schema(schema_data)
-        validator = Draft6Validator(meta_schema, resolver=resolver)
-        validator.validate(schema_data)
-    except jsonschema.ValidationError as e:
-        return ValidationError(
-            kind, filename, "VALIDATION_ERROR", e, meta_schema_url=meta_schema_url
-        )
-    except (jsonschema.SchemaError, jsonschema.exceptions.RefResolutionError) as e:
-        return ValidationError(
-            kind, filename, "SCHEMA_ERROR", e, meta_schema_url=meta_schema_url
-        )
-
-    return ValidationOK(kind, filename, meta_schema_url)
-
-
-def validate_file(
-    schemas_bundle: dict[str, dict[str, Any]],
-    filename: str,
-    data: dict[str, Any],
-) -> ValidationError | ValidationOK:
-    kind = ValidatedFileKind.DATA_FILE
-
-    logging.info("validating file: %s", filename)
-
-    schema_url = data.get("$schema")
-    if schema_url is None:
-        return ValidationError(
-            kind,
-            filename,
-            "MISSING_SCHEMA_URL",
-            NotFoundError(f"Missing schema URL in file {filename}"),
-        )
-
-    if not schema_url.startswith("http") and not schema_url.startswith("/"):
-        schema_url = "/" + schema_url
-
-    schema = schemas_bundle.get(schema_url)
-    if schema is None:
-        return ValidationError(
-            kind,
-            filename,
-            "SCHEMA_NOT_FOUND",
-            NotFoundError(f"Schema {schema_url} not found in the file {filename}"),
-            schema_url=schema_url,
-        )
-
-    try:
-        resolver = jsonschema.RefResolver(
-            schema_url, schema, handlers=get_handlers(schemas_bundle)
-        )
-        validator = Draft6Validator(schema, resolver=resolver)
-        validator.validate(data)
-    except jsonschema.ValidationError as e:
-        return ValidationError(
-            kind, filename, "VALIDATION_ERROR", e, schema_url=schema_url
-        )
-    except jsonschema.SchemaError as e:
-        return ValidationError(kind, filename, "SCHEMA_ERROR", e, schema_url=schema_url)
-    except TypeError as e:
-        return ValidationError(
-            kind, filename, "SCHEMA_TYPE_ERROR", e, schema_url=schema_url
-        )
-
-    return ValidationOK(kind, filename, schema_url)
-
-
-def _get_unique_field_names(gql_fields: list[dict[str, Any]]) -> list[str]:
-    return [field["name"] for field in gql_fields if field.get("isUnique")]
-
-
-def validate_unique_fields(
-    bundle: Bundle,
-) -> Iterator[ValidationError]:
-    graphql = {
-        item.spec["name"]: item.spec["fields"] for item in bundle.list_graphql_types()
-    }
-    datafiles_map = {
-        field["type"]: datafileSchema
-        for field in graphql["Query"]
-        if (datafileSchema := field.get("datafileSchema"))
-    }
-
-    unique_map = {
-        datafileSchema: _get_unique_field_names(gql_fields)
-        for gql_type, gql_fields in graphql.items()
-        if gql_type != "Query" and (datafileSchema := datafiles_map.get(gql_type))
-    }
-
-    unique_fields = defaultdict(list)
-    for filename, data in bundle.data.items():
-        if schema := data.get("$schema"):
-            for field in unique_map.get(schema, []):
-                key = (schema, field, data.get(field))
-                unique_fields[key].append(filename)
-
-    for (schema, field, _), filenames in unique_fields.items():
-        if len(filenames) > 1:
-            sorted_filenames = sorted(filenames)
-            yield ValidationError(
-                ValidatedFileKind.UNIQUE,
-                sorted_filenames[0],
-                "DUPLICATE_UNIQUE_FIELD",
-                DuplicateUniqueFieldError(
-                    f"The field '{field}' is repeated: {', '.join(sorted_filenames)}",
-                ),
-                ref=schema,
-                ptr=field,
-            )
-
-
-def validate_resource(
-    schemas_bundle: dict[str, dict[str, Any]],
-    filename: str,
-    resource: dict[str, Any],
-) -> ValidationError | ValidationOK:
-    if resource["$schema"] is None:
-        return ValidationOK(ValidatedFileKind.NONE, filename, "")
-
-    try:
-        data = load_yaml(resource["content"])
-    except yaml.error.YAMLError:
-        logging.warning("We can't validate resource with schema %s", filename)
-        return ValidationOK(ValidatedFileKind.NONE, filename, "")
-
-    return validate_file(schemas_bundle, filename, data)
-
-
-def validate_ref(
-    schemas_bundle: dict[str, dict[str, Any]],
-    bundle: dict[str, dict[str, Any]],
-    filename: str,
-    data: dict[str, Any],
-    ptr: str,
-    ref: dict[str, Any],
-) -> Iterator[ValidationError | ValidationRefOK | ValidationOK]:
-    kind = ValidatedFileKind.REF
-
-    ref_data = bundle.get(ref["$ref"])
-    if ref_data is None:
-        yield ValidationError(
-            kind,
-            filename,
-            "FILE_NOT_FOUND",
-            NotFoundError(
-                f"Reference to file {ref['$ref']} in file {filename} not found"
-            ),
-            ref=ref["$ref"],
-        )
-        return
-
-    schema = schemas_bundle.get(data["$schema"])
-    if schema is None:
-        yield ValidationError(
-            kind,
-            filename,
-            "SCHEMA_NOT_FOUND",
-            NotFoundError(
-                f"Reference to schema {ref['$ref']} in file {filename} not found"
-            ),
-            ref=ref["$ref"],
-        )
-        return
-
-    try:
-        schema_infos = get_schema_info_from_pointer(schema, ptr, schemas_bundle)
-    except KeyError as e:
-        yield ValidationError(
-            kind,
-            filename,
-            "SCHEMA_DEFINITION_NOT_FOUND",
-            e,
-            ref=ref["$ref"],
-            ptr=ptr,
-        )
-        return
-
-    for schema_info in schema_infos:
-        if expected_schema := schema_info.get("$schemaRef"):
-            if isinstance(expected_schema, str):
-                if expected_schema != ref_data["$schema"]:
-                    yield ValidationError(
-                        kind,
-                        filename,
-                        "INCORRECT_SCHEMA",
-                        IncorrectSchemaError(ref_data["$schema"], expected_schema),
-                        ref=ref["$ref"],
-                    )
-                else:
-                    yield ValidationRefOK(kind, filename, ref["$ref"], data["$schema"])
-                    return
-            else:
-                try:
-                    validator = Draft6Validator(expected_schema)
-                    validator.validate(ref_data)
-                    yield ValidationRefOK(kind, filename, ref["$ref"], data["$schema"])
-                    return
-                except jsonschema.exceptions.ValidationError as e:
-                    yield ValidationError(
-                        kind, filename, "SCHEMA_REF_VALIDATION_ERROR", e
-                    )
 
 
 @cache
@@ -415,123 +143,375 @@ def fetch_schema(schema_url: str) -> dict[str, Any]:
     raise MissingSchemaFileError(schema_url)
 
 
-def find_refs(
-    obj: Any,
-    ptr: str = "",
-) -> Iterator[tuple[str, dict[str, Any]]]:
-    if isinstance(obj, dict):
-        if "$ref" in obj:
-            yield ptr, obj
-        else:
-            for key, item in obj.items():
-                new_ptr = f"{ptr}/{key}"
-                yield from find_refs(item, new_ptr)
-    elif isinstance(obj, list):
-        for index, item in enumerate(obj):
-            new_ptr = f"{ptr}/{index}"
-            yield from find_refs(item, new_ptr)
+def validate_schemas(bundle: Bundle) -> Iterator[ValidationResult]:
+    for schema_path, schema in bundle.schemas.items():
+        yield validate_schema(bundle, schema_path, schema)
 
 
-def _get_external_schema_ref(info: dict[str, Any]) -> str | None:
-    if (ref := info.get("$ref")) and ref != "/common-1.json#/definitions/crossref":
-        return ref
+def validate_schema(
+    bundle: Bundle,
+    schema_path: str,
+    schema: dict[str, Any],
+) -> ValidationResult:
+    logging.info("validating schema: %s", schema_path)
+    meta_schema_url = schema.get("$schema")
+    if meta_schema_url is None:
+        return build_error_validation_result(
+            filename=schema_path,
+            kind=ValidatedFileKind.SCHEMA,
+            reason="MISSING_SCHEMA_URL",
+            error=f"Missing schema URL in file {schema_path}",
+        )
+    meta_schema = bundle.schemas.get(meta_schema_url) or fetch_schema(meta_schema_url)
+    resolver = RefResolver(schema_path, schema, handlers=get_handlers(bundle))
+    try:
+        Draft6Validator.check_schema(schema)
+    except SchemaError as e:
+        return build_error_validation_result(
+            filename=schema_path,
+            kind=ValidatedFileKind.SCHEMA,
+            reason="SCHEMA_ERROR",
+            error=str(e),
+            schema_url=meta_schema_url,
+        )
+    try:
+        validator = Draft6Validator(meta_schema, resolver=resolver)
+        validator.validate(schema)
+    except ValidationError as e:
+        return build_error_validation_result(
+            filename=schema_path,
+            kind=ValidatedFileKind.SCHEMA,
+            reason="VALIDATION_ERROR",
+            error=str(e),
+            schema_url=meta_schema_url,
+        )
+
+    return build_ok_validation_result(
+        filename=schema_path,
+        kind=ValidatedFileKind.SCHEMA,
+        scheme_url=meta_schema_url,
+    )
+
+
+def find_duplicates[K, V: Sized](data: dict[K, V]) -> Iterator[tuple[K, V]]:
+    for key, value in data.items():
+        if len(value) > 1:
+            yield key, value
+
+
+def validate_datafiles(bundle: Bundle) -> Iterator[ValidationResult]:
+    for datafile_path, datafile in bundle.data.items():
+        yield validate_file(bundle, datafile_path, datafile)
+
+    unique_constraint: defaultdict[UniqueConstraintKey, list[str]] = defaultdict(list)
+    context_unique_constraint: defaultdict[ContextUniqueConstraintKey, list[int]] = (
+        defaultdict(list)
+    )
+
+    for node in traverse_data(bundle):
+        filename = node.path
+        if (
+            isinstance(node.data, str)
+            and node.is_resource_ref()
+            and node.data not in bundle.resources
+        ):
+            yield build_error_validation_result(
+                filename=filename,
+                kind=ValidatedFileKind.REF,
+                reason="RESOURCE_FILE_NOT_FOUND",
+                error=f"Resource file {node.data} not found in file {filename}",
+                schema_url=node.schema_path,
+            )
+
+        match node.jsonpaths:
+            case [*_, JSONPathField("$ref")]:
+                yield validate_ref(node)
+
+        if unique_constraint_key := build_unique_constraint_key_from_node(node):
+            unique_constraint[unique_constraint_key].append(filename)
+
+        if (
+            context_unique_constraint_tuple
+            := build_context_unique_constraint_tuple_from_node(node)
+        ):
+            context_unique_constraint[context_unique_constraint_tuple.key].append(
+                context_unique_constraint_tuple.value
+            )
+
+    for unique_key, filenames in find_duplicates(unique_constraint):
+        sorted_filenames = sorted(filenames)
+        filename = sorted_filenames[0]
+        yield build_error_validation_result(
+            filename=filename,
+            kind=ValidatedFileKind.UNIQUE,
+            reason="DUPLICATE_UNIQUE_FIELD",
+            error=f"The field '{unique_key.graphql_field}' is repeated: {', '.join(sorted_filenames)}",
+        )
+
+    for context_unique_key, indices in find_duplicates(context_unique_constraint):
+        filename = context_unique_key.filename
+        duplicates = ", ".join(
+            f"{context_unique_key.jsonpath}/{index}" for index in indices
+        )
+        yield build_error_validation_result(
+            filename=filename,
+            kind=ValidatedFileKind.UNIQUE,
+            reason="DUPLICATE_CONTEXT_UNIQUE_FIELD",
+            error=f"Context uniqueness error, file: {filename}, fields: {context_unique_key.field_names}, duplicates: {duplicates}",
+        )
+
+
+def build_unique_constraint_key_from_node(node: Node) -> UniqueConstraintKey | None:
+    if (graphql_type := node.graphql_type) and (graphql_field := node.graphql_field):
+        graphql_field_name = graphql_field["name"]
+        if (
+            graphql_type.interface
+            and (
+                graphql_interface_type := node.bundle.graphql_lookup.get_by_type_name(
+                    graphql_type.interface
+                )
+            )
+            and (
+                graphql_interface_field := graphql_interface_type.get_field(
+                    graphql_field_name
+                )
+            )
+            and graphql_interface_field.get("isUnique")
+        ):
+            return UniqueConstraintKey(
+                graphql_interface_type.name, graphql_field_name, node.data
+            )
+        if graphql_field.get("isUnique"):
+            return UniqueConstraintKey(graphql_type.name, graphql_field_name, node.data)
     return None
 
 
-def get_schema_info_from_pointer(
-    schema: dict[str, Any],
-    ptr: str,
-    schemas_bundle: dict[str, dict[str, Any]],
-) -> list[dict[str, Any]]:
-    info = schema
+def build_context_unique_constraint_key(
+    filename: str,
+    jsonpaths: list[JSONPath],
+    identifier: str,
+    graphql_type: GraphqlType,
+) -> ContextUniqueConstraintKey:
+    context_unique_field_names = graphql_type.context_unique_field_names()
+    field_names = ", ".join(sorted(context_unique_field_names))
+    return ContextUniqueConstraintKey(
+        filename=filename,
+        jsonpath=build_jsonpath(jsonpaths),
+        field_names=field_names,
+        identifier=identifier,
+    )
 
-    ptr_chunks = ptr.split("/")[1:]
-    for idx, chunk in enumerate(ptr_chunks):
-        info = info["items"] if chunk.isdigit() else info["properties"][chunk]
 
-        if ref := _get_external_schema_ref(info):
-            # this points to an external schema
-            # we need to load it
-            info = schemas_bundle[ref]
-        elif list(info.keys()) == ["oneOf"]:
-            schemas = []
-            # this is a list of type options in an array
-            # we look at all of them and try to find at least one where the
-            # ptr resolves successfully
-            for item in info["oneOf"]:
-                with contextlib.suppress(KeyError):
-                    schemas.extend(
-                        get_schema_info_from_pointer(
-                            schemas_bundle[item["$ref"]],
-                            f"/{'/'.join(ptr_chunks[idx + 1 :])}",
-                            schemas_bundle,
+def build_context_unique_constraint_tuple_from_node(
+    node: Node,
+) -> ContextUniqueConstraintTuple | None:
+    match node.jsonpaths:
+        case [*_, JSONPathIndex(index), JSONPathField(field)]:
+            match field:
+                case "$ref":
+                    if (
+                        (data := node.resolve_ref())
+                        and (identifier := data.get("__identifier"))
+                        and (schema_path := data.get("$schema"))
+                        and (
+                            graphql_type := node.bundle.graphql_lookup.get_by_schema(
+                                schema_path
+                            )
                         )
-                    )
-                    # this subtype is not the one we are looking for
-                with contextlib.suppress(KeyError):
-                    schemas.append(schemas_bundle[item["$schemaRef"]])
-            if not schemas:
-                msg = (
-                    f"unable to resolve schema for {ptr} "
-                    f"in oneOf options {info['oneOf']}"
-                )
-                raise KeyError(msg)
-            return schemas
+                    ):
+                        return ContextUniqueConstraintTuple(
+                            key=build_context_unique_constraint_key(
+                                filename=node.path,
+                                jsonpaths=node.jsonpaths[:-2],
+                                identifier=identifier,
+                                graphql_type=graphql_type,
+                            ),
+                            value=index,
+                        )
+                case "__identifier":
+                    if graphql_type := node.graphql_type:
+                        return ContextUniqueConstraintTuple(
+                            key=build_context_unique_constraint_key(
+                                filename=node.path,
+                                jsonpaths=node.jsonpaths[:-2],
+                                identifier=node.data,
+                                graphql_type=graphql_type,
+                            ),
+                            value=index,
+                        )
+    return None
 
-    return [info]
+
+def validate_ref(node: Node) -> ValidationResult:
+    filename = node.path
+    ref = node.data
+    ref_data = node.bundle.data.get(ref)
+    if ref_data is None:
+        return build_error_validation_result(
+            filename=filename,
+            kind=ValidatedFileKind.REF,
+            reason="FILE_NOT_FOUND",
+            error=f"Reference to file {ref} in file {filename} not found",
+        )
+
+    if (
+        (ref_data_schema := ref_data.get("$schema"))
+        and node.schema
+        and (expected_schema := node.schema.get("$schemaRef"))
+    ):
+        if isinstance(expected_schema, str):
+            if expected_schema != ref_data_schema:
+                return build_error_validation_result(
+                    filename=filename,
+                    kind=ValidatedFileKind.REF,
+                    reason="INCORRECT_SCHEMA",
+                    error=f"incorrect schema: got `{ref_data_schema}`, expecting `{expected_schema}`",
+                )
+        else:
+            try:
+                validator = Draft6Validator(expected_schema)
+                validator.validate(ref_data)
+            except ValidationError as e:
+                return build_error_validation_result(
+                    filename=filename,
+                    kind=ValidatedFileKind.REF,
+                    reason="SCHEMA_REF_VALIDATION_ERROR",
+                    error=str(e),
+                    schema_url=ref_data_schema,
+                )
+
+    return build_ok_validation_result(
+        filename=filename,
+        kind=ValidatedFileKind.REF,
+        scheme_url=node.schema_path,
+        ref=ref,
+    )
+
+
+def validate_file(
+    bundle: Bundle,
+    filename: str,
+    data: dict[str, Any],
+) -> ValidationResult:
+    logging.info("validating file: %s", filename)
+    schema_url = data.get("$schema")
+    if schema_url is None:
+        return build_error_validation_result(
+            filename=filename,
+            kind=ValidatedFileKind.FILE,
+            reason="MISSING_SCHEMA_URL",
+            error=f"Missing schema URL in file {filename}",
+        )
+
+    normalized_schema_url = (
+        "/" + schema_url
+        if not schema_url.startswith("http") and not schema_url.startswith("/")
+        else schema_url
+    )
+
+    schema = bundle.schemas.get(normalized_schema_url)
+    if schema is None:
+        return build_error_validation_result(
+            filename=filename,
+            kind=ValidatedFileKind.FILE,
+            reason="SCHEMA_NOT_FOUND",
+            error=f"Schema {normalized_schema_url} not found in the file {filename}",
+            schema_url=normalized_schema_url,
+        )
+
+    resolver = RefResolver(schema_url, schema, handlers=get_handlers(bundle))
+    try:
+        validator = Draft6Validator(schema, resolver=resolver)
+        validator.validate(data)
+    except ValidationError as e:
+        return build_error_validation_result(
+            filename=filename,
+            kind=ValidatedFileKind.FILE,
+            reason="VALIDATION_ERROR",
+            error=str(e),
+            schema_url=schema_url,
+        )
+
+    return build_ok_validation_result(
+        filename=filename,
+        kind=ValidatedFileKind.FILE,
+        scheme_url=schema_url,
+    )
+
+
+def validate_resources(bundle: Bundle) -> Iterator[ValidationResult]:
+    for resource_path, resource in bundle.resources.items():
+        yield validate_resource(bundle, resource_path, resource)
+
+
+def validate_resource(
+    bundle: Bundle,
+    resource_path: str,
+    resource: dict[str, Any],
+) -> ValidationResult:
+    if resource["$schema"] is None:
+        return build_ok_validation_result(
+            filename=resource_path,
+            kind=ValidatedFileKind.FILE,
+        )
+
+    try:
+        data = load_yaml(resource["content"])
+    except YAMLError:
+        logging.warning("We can't validate resource with schema %s", resource_path)
+        return build_ok_validation_result(
+            filename=resource_path,
+            kind=ValidatedFileKind.FILE,
+        )
+
+    return validate_file(bundle, resource_path, data)
+
+
+def validate_graphql(bundle: Bundle) -> Iterator[ValidationResult]:
+    if isinstance(bundle.graphql, dict):
+        yield validate_file(
+            bundle=bundle,
+            filename=GRAPHQL_FILE_NAME,
+            data=bundle.graphql,
+        )
+
+    is_unique_fields = (
+        (graphql_type_name, graphql_field)
+        for graphql_type_name, graphql_type in bundle.graphql_lookup.graphql_types.items()
+        for graphql_field in graphql_type.fields.values()
+        if "isUnique" in graphql_field
+    )
+    for graphql_type_name, graphql_field in is_unique_fields:
+        if graphql_type_name not in bundle.graphql_lookup.top_level_graphql_type_names:
+            yield build_error_validation_result(
+                filename=GRAPHQL_FILE_NAME,
+                kind=ValidatedFileKind.SCHEMA,
+                reason="IS_UNIQUE_ON_NON_TOP_LEVEL_TYPE",
+                error=f"isUnique set on {graphql_type_name}.{graphql_field['name']},"
+                f" which is not a top-level type, add datafile to {graphql_type_name}"
+                " if there is a datafile mapping to it.",
+            )
+        if graphql_field["type"] in bundle.graphql_lookup.graphql_types:
+            yield build_error_validation_result(
+                filename=GRAPHQL_FILE_NAME,
+                kind=ValidatedFileKind.SCHEMA,
+                reason="IS_UNIQUE_ON_COMPLEX_FIELD",
+                error=f"isUnique set on {graphql_type_name}.{graphql_field['name']},"
+                f" type {graphql_field['type']} is not a simple type",
+            )
 
 
 def validate_bundle(
     bundle: Bundle,
 ) -> list[ValidationResult]:
-    # Validate schemas
-    results_schemas = (
-        validate_schema(bundle.schemas, filename, schema_data)
-        for filename, schema_data in bundle.schemas.items()
-    )
-
-    # validate datafiles
-    results_files = (
-        validate_file(bundle.schemas, filename, data)
-        for filename, data in bundle.data.items()
-    )
-
-    # validate unique fields
-    results_unique_fields = validate_unique_fields(bundle)
-
-    # validate resources
-    results_resources = (
-        validate_resource(bundle.schemas, filename, resource)
-        for filename, resource in bundle.resources.items()
-    )
-
-    # validate refs
-    results_refs = (
-        result
-        for filename, data in bundle.data.items()
-        for ptr, ref in find_refs(data)
-        for result in validate_ref(
-            bundle.schemas, bundle.data, filename, data, ptr, ref
+    return list(
+        itertools.chain(
+            validate_schemas(bundle),
+            validate_datafiles(bundle),
+            validate_resources(bundle),
+            validate_graphql(bundle),
         )
     )
-
-    results_graphql_schemas = (
-        [validate_file(bundle.schemas, "graphql-schemas/schema.yml", bundle.graphql)]
-        if isinstance(bundle.graphql, dict)
-        else []
-    )
-
-    return [
-        result.dump()
-        for result in itertools.chain(
-            results_schemas,
-            results_files,
-            results_unique_fields,
-            results_resources,
-            results_refs,
-            results_graphql_schemas,
-        )
-    ]
 
 
 @click.command()

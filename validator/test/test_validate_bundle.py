@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 
 from validator.bundle import Bundle
-from validator.validator_v2 import ValidationResult, validate_bundle
+from validator.validator import ValidationResult, validate_bundle
 
 
 @pytest.fixture

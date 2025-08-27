@@ -3,7 +3,7 @@ from collections.abc import Callable
 import pytest
 
 from validator.bundle import Bundle
-from validator.postprocess_v2 import postprocess_bundle
+from validator.postprocess import postprocess_bundle
 
 
 @pytest.mark.parametrize(
@@ -23,4 +23,4 @@ def test_checksum_field(
 
     postprocess_bundle(bundle, "$file_sha256sum")
 
-    assert bundle.to_dict() == expected_bundle.to_dict()
+    assert bundle == expected_bundle

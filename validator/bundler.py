@@ -3,13 +3,13 @@ import logging
 import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import click
 
 from validator.bundle import Bundle
-from validator.postprocess_v2 import postprocess_bundle
+from validator.postprocess import postprocess_bundle
 from validator.utils import (
     SUPPORTED_EXTENSIONS,
     FileType,
@@ -159,4 +159,4 @@ def main(
 
     postprocess_bundle(bundle, checksum_field_name=CHECKSUM_SCHEMA_FIELD)
 
-    sys.stdout.write(json.dumps(bundle.to_dict(), separators=(",", ":")) + "\n")
+    sys.stdout.write(json.dumps(asdict(bundle), separators=(",", ":")) + "\n")

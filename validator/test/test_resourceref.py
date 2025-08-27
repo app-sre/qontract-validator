@@ -3,7 +3,7 @@ from collections.abc import Callable
 import pytest
 
 from validator.bundle import Bundle
-from validator.postprocess_v2 import postprocess_bundle
+from validator.postprocess import postprocess_bundle
 
 
 @pytest.fixture
@@ -99,7 +99,7 @@ def test_one_of_refs(bundle: Bundle):
 
 
 def test_circular_ref_top_level_type(bundle: Bundle):
-    """shows that reference loops are dealth with an reference detection stops looking in other top level types"""
+    """shows that reference loops are dealt with a reference detection stops looking in other top level types"""
     postprocess_bundle(bundle)
     expected = [
         {
