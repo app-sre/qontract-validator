@@ -19,13 +19,11 @@ def test_simple_refs(bundle: Bundle) -> None:
         {
             "path": "file-1-schema-1.yml",
             "datafileSchema": "schema-1.yml",
-            "type": "Schema_v1",
             "jsonpath": "simple_ref",
         },
         {
             "path": "file-1-schema-1.yml",
             "datafileSchema": "schema-1.yml",
-            "type": "Schema_v1",
             "jsonpath": "simple_object.simple_nested_ref",
         },
     ]
@@ -40,13 +38,11 @@ def test_array_field_to_nested_refs(bundle: Bundle) -> None:
         {
             "path": "file-1-schema-1.yml",
             "datafileSchema": "schema-1.yml",
-            "type": "Schema_v1",
             "jsonpath": "array_field_to_nested_refs.[0].simple_nested_ref",
         },
         {
             "path": "file-1-schema-1.yml",
             "datafileSchema": "schema-1.yml",
-            "type": "Schema_v1",
             "jsonpath": "array_field_to_nested_refs.[1].simple_nested_ref",
         },
     ]
@@ -63,13 +59,11 @@ def test_embedded_schemas(bundle: Bundle) -> None:
         {
             "path": "file-1-schema-1.yml",
             "datafileSchema": "schema-1.yml",
-            "type": "Schema_v1",
             "jsonpath": "schema_ref_field.simple_ref",
         },
         {
             "path": "file-1-schema-1.yml",
             "datafileSchema": "schema-1.yml",
-            "type": "Schema_v1",
             "jsonpath": "schema_ref_field.simple_object.simple_nested_ref",
         },
     ]
@@ -83,13 +77,11 @@ def test_one_of_refs(bundle: Bundle) -> None:
         {
             "path": "file-1-schema-1.yml",
             "datafileSchema": "schema-1.yml",
-            "type": "Schema_v1",
             "jsonpath": "one_of_ref_array.[0].a_field",
         },
         {
             "path": "file-1-schema-1.yml",
             "datafileSchema": "schema-1.yml",
-            "type": "Schema_v1",
             "jsonpath": "one_of_ref_array.[2].a_field",
         },
     ]
@@ -105,13 +97,11 @@ def test_circular_ref_top_level_type(bundle: Bundle) -> None:
         {
             "path": "file-2-another-schema-1.yml",
             "datafileSchema": "another-schema-1.yml",
-            "type": "AnotherSchema_v1",
             "jsonpath": "simple_ref",
         },
         {
             "path": "file-2-another-schema-1.yml",
             "datafileSchema": "another-schema-1.yml",
-            "type": "AnotherSchema_v1",
             "jsonpath": "simple_object.simple_nested_ref",
         },
     ]

@@ -170,7 +170,6 @@ class GraphqlLookup:
 class Backref(TypedDict):
     path: str
     datafileSchema: str
-    type: str
     jsonpath: str
 
 

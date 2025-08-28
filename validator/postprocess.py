@@ -104,21 +104,9 @@ def build_backref(node: Node) -> Backref | None:
         Backref | None: Returns a Backref object if the node is a resource reference,
     """
     if node.is_resource_ref() and node.data and node.file_schema_path:
-        # TODO: type is not needed, remove it in the next version  # noqa: FIX002, TD002, TD003
-        # this logic just keep the type for backward compatibility
-        type_name = (
-            graphql_type.name
-            if (
-                graphql_type := node.bundle.graphql_lookup.get_by_schema(
-                    node.file_schema_path
-                )
-            )
-            else ""
-        )
         return Backref(
             path=node.path,
             datafileSchema=node.file_schema_path,
-            type=type_name,
             jsonpath=build_jsonpath(node.jsonpaths),
         )
     return None
