@@ -126,7 +126,7 @@ def build_context_unique_node(node: Node) -> ContextUniqueNode | None:
     In the case of the field has `$ref` in it, the value of `$ref` is used literally.
 
     For crossref field ($ref), if it's directly inside array, which means the whole object is pointing to another file,
-    it will try to find all unique fields from target file top level graphql type fields.
+    it will try to find all context unique fields from target file top level graphql type fields.
     Non-top level graphql type fields are covered by non crossref field.
 
     Args:
