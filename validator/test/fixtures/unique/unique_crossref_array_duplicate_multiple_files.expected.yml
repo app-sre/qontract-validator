@@ -43,5 +43,5 @@ data:
   file-2-another-schema-1.yml:
     $schema: another-schema-1.yml
     simple_field: bla
-    __identifier: "128ecf542a35ac5270a87dc740918404" # +
+    __identifier: "5fcc28b49951ac3dd925eacdbca8bee03d70cf686aa7d672a32545a15c0be787" # +
 resources: {}

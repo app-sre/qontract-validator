@@ -112,11 +112,11 @@ data:
       simple_field: bla
     ref_array:
     - simple_field: bla
-      __identifier: "128ecf542a35ac5270a87dc740918404" # +
+      __identifier: "5fcc28b49951ac3dd925eacdbca8bee03d70cf686aa7d672a32545a15c0be787" # +
     one_of_ref_array:
     - type_field: flavour-1
       a_field: bla
-      __identifier: "128ecf542a35ac5270a87dc740918404" # +
+      __identifier: "892f9da76efa0600c98bcf415283f92643bdad35a9d41482d0413ec63d3622f7" # +
     - type_field: flavour-2
       a_field: foo
     crossref_field:
@@ -126,5 +126,5 @@ data:
   file-2-another-schema-1.yml:
     $schema: another-schema-1.yml
     simple_field: bla
-    __identifier: "128ecf542a35ac5270a87dc740918404" # +
+    __identifier: "5fcc28b49951ac3dd925eacdbca8bee03d70cf686aa7d672a32545a15c0be787" # +
 resources: {}

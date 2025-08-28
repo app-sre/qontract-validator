@@ -185,7 +185,7 @@ Resource = TypedDict(
 )
 
 
-@dataclass
+@dataclass(frozen=True)
 class Bundle:
     graphql: list[dict[str, Any]] | dict[str, Any]
     data: dict[str, dict[str, Any]]

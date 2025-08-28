@@ -43,10 +43,10 @@ data:
     crossref_array:
     - crossref_field:
         $ref: file-2-another-schema-1.yml
-      __identifier: "29bf1bb14d34ce3e7169c4913e036517" # +
+      __identifier: "f14e46f169ab6c01d4a7a79c14b687efbcdc6c93d84a9b8e3449f65de65dbe15" # +
     - crossref_field:
         $ref: file-2-another-schema-1.yml
-      __identifier: "29bf1bb14d34ce3e7169c4913e036517" # +
+      __identifier: "f14e46f169ab6c01d4a7a79c14b687efbcdc6c93d84a9b8e3449f65de65dbe15" # +
   file-2-another-schema-1.yml:
     $schema: another-schema-1.yml
     simple_field: bla

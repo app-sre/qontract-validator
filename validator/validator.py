@@ -25,7 +25,7 @@ from validator.bundle import (
 )
 from validator.jsonpath import JSONPath, JSONPathField, JSONPathIndex, build_jsonpath
 from validator.traverse import Node, traverse_data
-from validator.utils import dump_json, load_yaml
+from validator.utils import json_dump, load_yaml
 
 GRAPHQL_FILE_NAME = "graphql-schemas/schema.yml"
 
@@ -555,7 +555,7 @@ def main() -> None:
 
     if args.only_errors:
         errors = [r for r in results if r["result"]["status"] == ValidationStatus.ERROR]
-        dump_json(errors, sys.stdout, indent=2)
+        json_dump(errors, sys.stdout, indent=2, sort_keys=True)
     else:
         errors = []
         all_results = []
@@ -563,7 +563,7 @@ def main() -> None:
             if r["result"]["status"] == ValidationStatus.ERROR:
                 errors.append(r)
             all_results.append(r)
-        dump_json(all_results, sys.stdout, indent=2)
+        json_dump(all_results, sys.stdout, indent=2, sort_keys=True)
 
     if errors:
         sys.exit(1)

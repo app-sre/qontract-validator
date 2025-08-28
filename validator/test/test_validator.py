@@ -9,7 +9,7 @@ from unittest.mock import patch
 import pytest
 
 from validator.bundle import Bundle
-from validator.utils import dump_json
+from validator.utils import json_dump
 from validator.validator import ValidationResult, main, validate_bundle
 
 
@@ -130,7 +130,7 @@ def test_validator_main(
     bundle, expected_results = bundle_and_expected_results_factory("valid.yml")
     bundlefile = tmp_path / "bundle.json"
     with bundlefile.open("w", encoding="utf-8") as f:
-        dump_json(asdict(bundle), f, compact=True)
+        json_dump(asdict(bundle), f, compact=True, sort_keys=True)
 
     mock_args = [
         "qontract-validator",
@@ -162,7 +162,7 @@ def test_validator_main_errors(
     )
     bundlefile = tmp_path / "bundle.json"
     with bundlefile.open("w", encoding="utf-8") as f:
-        dump_json(asdict(bundle), f, compact=True)
+        json_dump(asdict(bundle), f, compact=True, sort_keys=True)
 
     mock_args = [
         "qontract-validator",

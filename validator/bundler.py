@@ -11,9 +11,9 @@ from validator.postprocess import postprocess_bundle
 from validator.utils import (
     SUPPORTED_EXTENSIONS,
     FileType,
-    dump_json,
     get_checksum,
     get_file_type,
+    json_dump,
     parse_anymarkup_file,
 )
 
@@ -200,4 +200,9 @@ def main() -> None:
         git_commit=args.git_commit,
         git_commit_timestamp=args.git_commit_timestamp,
     )
-    dump_json(asdict(bundle), sys.stdout, compact=True)
+    json_dump(
+        asdict(bundle),
+        sys.stdout,
+        compact=True,
+        sort_keys=True,
+    )

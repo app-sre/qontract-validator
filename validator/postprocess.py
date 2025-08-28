@@ -1,7 +1,6 @@
-import hashlib
 from collections import defaultdict
-from collections.abc import Hashable, Iterable
 from dataclasses import dataclass
+from functools import cached_property
 from typing import Any
 
 from validator.bundle import Backref, Bundle, GraphqlType
@@ -11,6 +10,7 @@ from validator.jsonpath import (
     build_jsonpath,
 )
 from validator.traverse import Node, traverse_data
+from validator.utils import get_checksum, json_dumps
 
 CHECKSUM_FIELD_SCHEMA = {
     "type": "string",
@@ -24,7 +24,7 @@ IDENTIFIER_SCHEMA = {
 }
 
 
-@dataclass
+@dataclass(frozen=True)
 class ContextUniqueNode:
     schema: dict[str, Any]
     schema_one_of_root: Any
@@ -33,9 +33,13 @@ class ContextUniqueNode:
     path: str
     jsonpath: str
 
-    @property
+    @cached_property
     def identifier(self) -> str | None:
-        return _compute_identifier(self.props, self.data)
+        data = {k: v for k, v in self.data.items() if k in self.props}
+        if not data:
+            return None
+        json_string = json_dumps(data, compact=True, sort_keys=True)
+        return get_checksum(json_string.encode("utf-8"))
 
 
 def postprocess_bundle(
@@ -185,19 +189,3 @@ def _build_array_item_unique_field_node(
             jsonpath=build_jsonpath(node.jsonpaths[:-1]),
         )
     return None
-
-
-# TODO: this is for backward compatibility, use sha256sum on json string in the next version  # noqa: FIX002, TD002, TD003
-def _compute_identifier(properties: Iterable[str], obj: dict[str, Any]) -> str | None:
-    def to_hashable(field):
-        if isinstance(field, Hashable):
-            return field
-        return repr(field)
-
-    obj_id = [to_hashable(obj.get(item)) for item in sorted(properties)]
-    if all(i is None for i in obj_id):
-        return None
-    hash_id = hashlib.md5()  # noqa: S324
-    for i in obj_id:
-        hash_id.update(str(i).encode())
-    return hash_id.hexdigest()
