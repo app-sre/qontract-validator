@@ -81,18 +81,18 @@ class ContextUniqueConstraintTuple(NamedTuple):
 def build_ok_validation_result(
     filename: str,
     kind: ValidatedFileKind,
-    scheme_url: str | None = None,
+    schema_url: str | None = None,
     ref: str | None = None,
 ) -> ValidationResult:
     base_summary = f"OK: {filename}"
     ref_summary = f" ({ref})" if ref else ""
-    schema_summary = f" ({scheme_url})" if scheme_url else ""
+    schema_summary = f" ({schema_url})" if schema_url else ""
     result = _ValidationResult(
         status=ValidationStatus.OK,
         summary=f"{base_summary}{ref_summary}{schema_summary}",
     )
-    if scheme_url:
-        result["schema_url"] = scheme_url
+    if schema_url:
+        result["schema_url"] = schema_url
     return ValidationResult(
         filename=filename,
         kind=kind,
@@ -200,7 +200,7 @@ def validate_schema(
     return build_ok_validation_result(
         filename=schema_path,
         kind=ValidatedFileKind.SCHEMA,
-        scheme_url=meta_schema_url,
+        schema_url=meta_schema_url,
     )
 
 
@@ -397,7 +397,7 @@ def validate_ref(node: Node) -> ValidationResult:
     return build_ok_validation_result(
         filename=filename,
         kind=ValidatedFileKind.REF,
-        scheme_url=node.schema_path,
+        schema_url=node.schema_path,
         ref=ref,
     )
 
@@ -450,7 +450,7 @@ def validate_file(
     return build_ok_validation_result(
         filename=filename,
         kind=ValidatedFileKind.FILE,
-        scheme_url=schema_url,
+        schema_url=schema_url,
     )
 
 
