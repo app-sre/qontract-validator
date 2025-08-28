@@ -12,7 +12,7 @@ TEST_GIT_COMMIT_TIMESTAMP = "git-commit-timestamp"
 
 @pytest.fixture
 def fixture_factory() -> Callable[[str, str], Any]:
-    def _fixture_factory(base_path: str, fixture: str) -> Any:
+    def _fixture_factory(base_path: str, fixture: str) -> Any:  # noqa: ANN401
         return Fixtures(base_path).get_anymarkup(fixture)
 
     return _fixture_factory

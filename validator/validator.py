@@ -20,6 +20,7 @@ from yaml import YAMLError
 from validator.bundle import (
     Bundle,
     GraphqlType,
+    Resource,
     load_bundle,
 )
 from validator.jsonpath import JSONPath, JSONPathField, JSONPathIndex, build_jsonpath
@@ -463,7 +464,7 @@ def validate_resources(
 
 def validate_resource(
     resource_path: str,
-    resource: dict[str, Any],
+    resource: Resource,
     resolver: RefResolver,
 ) -> ValidationResult:
     if resource["$schema"] is None:

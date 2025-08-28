@@ -13,7 +13,7 @@ def bundle(
     return bundle_fixture_factory("backref", "bundle.yml")
 
 
-def test_simple_refs(bundle: Bundle):
+def test_simple_refs(bundle: Bundle) -> None:
     postprocess_bundle(bundle)
     expected = [
         {
@@ -34,7 +34,7 @@ def test_simple_refs(bundle: Bundle):
     assert expected == resource.get("backrefs")
 
 
-def test_array_field_to_nested_refs(bundle: Bundle):
+def test_array_field_to_nested_refs(bundle: Bundle) -> None:
     postprocess_bundle(bundle)
     expected = [
         {
@@ -55,7 +55,7 @@ def test_array_field_to_nested_refs(bundle: Bundle):
     assert expected == resource.get("backrefs")
 
 
-def test_embedded_schemas(bundle):
+def test_embedded_schemas(bundle: Bundle) -> None:
     """shows that resourceref detection works for embedded types ($ref)"""
     postprocess_bundle(bundle)
 
@@ -73,10 +73,10 @@ def test_embedded_schemas(bundle):
             "jsonpath": "schema_ref_field.simple_object.simple_nested_ref",
         },
     ]
-    assert expected == bundle.resources.get("/resource-2.yml").get("backrefs")
+    assert expected == bundle.resources["/resource-2.yml"]["backrefs"]
 
 
-def test_one_of_refs(bundle: Bundle):
+def test_one_of_refs(bundle: Bundle) -> None:
     """this test shows that refs can be found in subtypes while the same field name can be a ref in one subtype but not in another"""
     postprocess_bundle(bundle)
     expected = [
@@ -98,7 +98,7 @@ def test_one_of_refs(bundle: Bundle):
     assert expected == resource.get("backrefs")
 
 
-def test_circular_ref_top_level_type(bundle: Bundle):
+def test_circular_ref_top_level_type(bundle: Bundle) -> None:
     """shows that reference loops are dealt with a reference detection stops looking in other top level types"""
     postprocess_bundle(bundle)
     expected = [

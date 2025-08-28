@@ -10,7 +10,7 @@ class JSONPath(ABC):
         pass
 
     @abstractmethod
-    def read(self, data: Any) -> Any:
+    def read(self, data: Any) -> Any:  # noqa: ANN401
         pass
 
 
@@ -21,7 +21,7 @@ class JSONPathField(JSONPath):
     def to_expression(self) -> str:
         return self.field
 
-    def read(self, data: Any) -> Any:
+    def read(self, data: Any) -> Any:  # noqa: ANN401
         return data.get(self.field)
 
 
@@ -32,7 +32,7 @@ class JSONPathIndex(JSONPath):
     def to_expression(self) -> str:
         return f"[{self.index}]"
 
-    def read(self, data: Any) -> Any:
+    def read(self, data: Any) -> Any:  # noqa: ANN401
         return data[self.index]
 
 
@@ -48,7 +48,7 @@ def build_jsonpath(jsonpaths: Iterable[JSONPath]) -> str:
     return ".".join(path.to_expression() for path in jsonpaths)
 
 
-def read_jsonpath(data: Any, jsonpaths: Iterable[JSONPath]) -> Any:
+def read_jsonpath(data: Any, jsonpaths: Iterable[JSONPath]) -> Any:  # noqa: ANN401
     """
     Read data from a JSON object using a list of JsonPath objects.
 

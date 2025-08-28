@@ -29,14 +29,14 @@ def get_checksum(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def load_yaml(data: bytes) -> dict:
+def load_yaml(data: str | bytes) -> dict:
     if hasattr(yaml, "CSafeLoader"):
         return yaml.load(data, Loader=yaml.CSafeLoader)
     return yaml.load(data, Loader=yaml.SafeLoader)
 
 
 def dump_json(
-    data: Any,
+    data: Any,  # noqa: ANN401
     out: IO,
     *,
     compact: bool = False,

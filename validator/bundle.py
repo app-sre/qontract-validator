@@ -52,14 +52,14 @@ class GraphqlType:
             return self.interface_resolve.get("field")
         return None
 
-    def resolve_interface_field_value(self, data: Any) -> Any:
+    def resolve_interface_field_value(self, data: Any) -> Any:  # noqa: ANN401
         if (field_name := self.interface_resolve_field_name()) and isinstance(
             data, dict
         ):
             return data.get(field_name)
         return None
 
-    def resolve_interface_type_name(self, data: Any) -> str | None:
+    def resolve_interface_type_name(self, data: Any) -> str | None:  # noqa: ANN401
         if (
             self.interface_resolve
             and (field_map := self.interface_resolve.get("fieldMap"))
@@ -97,7 +97,7 @@ class GraphqlType:
 
 
 class GraphqlLookup:
-    def __init__(self, confs: list[dict[str, Any]]):
+    def __init__(self, confs: list[dict[str, Any]]) -> None:
         self.graphql_types = {
             name: self._build_graphql_type(conf)
             for conf in confs
@@ -167,12 +167,31 @@ class GraphqlLookup:
         return None
 
 
+class Backref(TypedDict):
+    path: str
+    datafileSchema: str
+    type: str
+    jsonpath: str
+
+
+Resource = TypedDict(
+    "Resource",
+    {
+        "path": str,
+        "content": str,
+        "$schema": str | None,
+        "sha256sum": str,
+        "backrefs": list[Backref],
+    },
+)
+
+
 @dataclass
 class Bundle:
     graphql: list[dict[str, Any]] | dict[str, Any]
     data: dict[str, dict[str, Any]]
     schemas: dict[str, dict[str, Any]]
-    resources: dict[str, dict[str, Any]]
+    resources: dict[str, Resource]
     git_commit: str
     git_commit_timestamp: str
 

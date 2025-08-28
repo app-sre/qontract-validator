@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from validator.bundle import Bundle
+from validator.bundle import Bundle, Resource
 from validator.postprocess import postprocess_bundle
 from validator.utils import (
     SUPPORTED_EXTENSIONS,
@@ -70,13 +70,19 @@ def bundle_datafile_spec(spec: Spec) -> tuple[str | None, dict | None, str | Non
     return rel_abs_path, content, checksum
 
 
-def bundle_resources(resource_dir, thread_pool_size):
+def bundle_resources(
+    resource_dir: Path,
+    thread_pool_size: int,
+) -> dict[str, Resource]:
     specs = init_specs(resource_dir)
     with ThreadPoolExecutor(max_workers=thread_pool_size) as pool:
         return dict(pool.map(bundle_resource_spec, specs))
 
 
-def get_schema_from_resource(path: Path, content: str) -> str | None:
+def get_schema_from_resource(
+    path: Path,
+    content: str,
+) -> str | None:
     if get_file_type(path) != FileType.YAML:
         return None
     if s := SCHEMA_RE.search(content):
@@ -84,7 +90,7 @@ def get_schema_from_resource(path: Path, content: str) -> str | None:
     return None
 
 
-def bundle_resource_spec(spec: Spec) -> tuple[str, dict]:
+def bundle_resource_spec(spec: Spec) -> tuple[str, Resource]:
     path = spec.root / spec.name
     rel_abs_path = path.as_posix().removeprefix(spec.work_dir.as_posix())
 
@@ -93,13 +99,13 @@ def bundle_resource_spec(spec: Spec) -> tuple[str, dict]:
     content = data.decode("utf-8")
     schema = get_schema_from_resource(path, content)
     sha256sum = get_checksum(data)
-    return rel_abs_path, {
+    return rel_abs_path, Resource({
         "path": rel_abs_path,
         "content": content,
         "$schema": schema,
         "sha256sum": sha256sum,
         "backrefs": [],
-    }
+    })
 
 
 def init_specs(
@@ -119,7 +125,7 @@ def init_specs(
     ]
 
 
-def bundle_graphql(graphql_schema_file: Path):
+def bundle_graphql(graphql_schema_file: Path) -> dict:
     if not graphql_schema_file.is_file():
         msg = f"could not find file {graphql_schema_file}"
         raise FileNotFoundError(msg)
@@ -158,7 +164,7 @@ def build_bundle(
     return bundle
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Bundle datafiles, schemas, graphql schema and resources"
     )

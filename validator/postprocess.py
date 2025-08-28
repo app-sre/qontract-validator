@@ -2,9 +2,9 @@ import hashlib
 from collections import defaultdict
 from collections.abc import Hashable, Iterable
 from dataclasses import dataclass
-from typing import Any, TypedDict
+from typing import Any
 
-from validator.bundle import Bundle, GraphqlType
+from validator.bundle import Backref, Bundle, GraphqlType
 from validator.jsonpath import (
     JSONPathField,
     JSONPathIndex,
@@ -22,13 +22,6 @@ IDENTIFIER_SCHEMA = {
         "type": "string",
     }
 }
-
-
-class Backref(TypedDict):
-    path: str
-    datafileSchema: str
-    type: str
-    jsonpath: str
 
 
 @dataclass

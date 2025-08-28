@@ -93,7 +93,7 @@ def traverse_data(bundle: Bundle) -> Iterator[Node]:
 def _get_init_graphql_type_name(
     bundle: Bundle,
     graphql_type: GraphqlType | None,
-    datafile: Any,
+    datafile: Any,  # noqa: ANN401
 ) -> str | None:
     if not graphql_type:
         return None
@@ -129,7 +129,11 @@ class SchemaInfo(NamedTuple):
     schema_one_of_root: Any
 
 
-def _next_dict_node(node: Node, key: str, value: Any) -> Node | None:
+def _next_dict_node(
+    node: Node,
+    key: str,
+    value: Any,  # noqa: ANN401
+) -> Node | None:
     if key == "$schema":
         return None
     graphql_type, graphql_field = _next_dict_graphql(node, key)
@@ -144,7 +148,11 @@ def _next_dict_node(node: Node, key: str, value: Any) -> Node | None:
     )
 
 
-def _next_list_node(node: Node, index: int, value: Any) -> Node:
+def _next_list_node(
+    node: Node,
+    index: int,
+    value: Any,  # noqa: ANN401
+) -> Node:
     schema = node.schema.get("items") if node.schema else None
     return _next_node(
         node=node,
@@ -196,7 +204,7 @@ def _next_dict_graphql(
 def _next_dict_schema(
     node: Node,
     key: str,
-) -> Any:
+) -> Any:  # noqa: ANN401
     """
     Resolve the next schema for a given dict node and key.
 
@@ -218,8 +226,8 @@ def _next_dict_schema(
 
 def _next_node(
     node: Node,
-    schema: Any,
-    data: Any,
+    schema: Any,  # noqa: ANN401
+    data: Any,  # noqa: ANN401
     jsonpaths: list[JSONPath],
     graphql_type: GraphqlType | None = None,
     graphql_field: GraphqlField | None = None,
@@ -289,7 +297,7 @@ def _next_node(
 def _resolve_graphql_interface_type(
     graphql_type: GraphqlType | None,
     bundle: Bundle,
-    data: Any,
+    data: Any,  # noqa: ANN401
 ) -> GraphqlType | None:
     """
     Resolve the GraphQL interface type based on the data.
@@ -313,9 +321,9 @@ def _resolve_graphql_interface_type(
 
 def _resolve_schema(
     schema_path: str | None,
-    schema: Any,
+    schema: Any,  # noqa: ANN401
     bundle: Bundle,
-    data: Any,
+    data: Any,  # noqa: ANN401
     graphql_type: GraphqlType | None,
 ) -> SchemaInfo:
     """
@@ -398,7 +406,7 @@ def _find_one_of_schema_by_enum(
     root_schema_info: SchemaInfo,
     schemas: list[Any],
     field: str,
-    field_value: Any,
+    field_value: Any,  # noqa: ANN401
     bundle: Bundle,
 ) -> SchemaInfo:
     for schema in schemas:
@@ -430,8 +438,8 @@ def _find_one_of_schema_by_enum(
 
 def _find_one_of_schema_by_crossref_data(
     schemas: list[dict[str, Any]],
-    data: Any,
-) -> Any:
+    data: Any,  # noqa: ANN401
+) -> Any:  # noqa: ANN401
     if isinstance(data, dict) and "$ref" in data:
         return next(schema for schema in schemas if "$schemaRef" in schema)
     return next(schema for schema in schemas if "$schemaRef" not in schema)
