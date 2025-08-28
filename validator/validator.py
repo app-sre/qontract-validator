@@ -30,6 +30,7 @@ GRAPHQL_FILE_NAME = "graphql-schemas/schema.yml"
 
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.WARNING)
+logger = logging.getLogger(__name__)
 
 
 class ValidatedFileKind(StrEnum):
@@ -151,7 +152,7 @@ def validate_schema(
     schema: dict[str, Any],
     resolver: RefResolver,
 ) -> ValidationResult:
-    logging.info("validating schema: %s", schema_path)
+    logger.info("validating schema: %s", schema_path)
     meta_schema_url = schema.get("$schema")
     if meta_schema_url is None:
         return build_error_validation_result(
@@ -183,7 +184,7 @@ def validate_schema(
         )
 
     try:
-        with resolver.in_scope(scope):
+        with resolver.in_scope(scope):  # type: ignore[func-returns-value]
             validator = Draft6Validator(meta_schema, resolver=resolver)
             validator.validate(schema)
     except ValidationError as e:
@@ -405,7 +406,7 @@ def validate_file(
     data: dict[str, Any],
     resolver: RefResolver,
 ) -> ValidationResult:
-    logging.info("validating file: %s", filename)
+    logger.info("validating file: %s", filename)
     schema_url = data.get("$schema")
     if schema_url is None:
         return build_error_validation_result(
@@ -433,7 +434,7 @@ def validate_file(
         )
 
     try:
-        with resolver.in_scope(scope):
+        with resolver.in_scope(scope):  # type: ignore[func-returns-value]
             validator = Draft6Validator(schema, resolver=resolver)
             validator.validate(data)
     except ValidationError as e:
@@ -474,7 +475,7 @@ def validate_resource(
     try:
         data = load_yaml(resource["content"])
     except YAMLError:
-        logging.warning("We can't validate resource with schema %s", resource_path)
+        logger.warning("We can't validate resource with schema %s", resource_path)
         return build_ok_validation_result(
             filename=resource_path,
             kind=ValidatedFileKind.FILE,

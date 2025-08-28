@@ -18,6 +18,7 @@ from validator.utils import (
 )
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.WARNING)
+logger = logging.getLogger(__name__)
 
 # regex to get the schema from the resource files.
 # we use multiline as we have a raw string with newlines characters
@@ -64,7 +65,7 @@ def bundle_datafile_spec(spec: Spec) -> tuple[str | None, dict | None, str | Non
     if path.suffix not in SUPPORTED_EXTENSIONS:
         return None, None, None
     rel_abs_path = path.as_posix().removeprefix(spec.work_dir.as_posix())
-    logging.info("Processing: %s\n", rel_abs_path)
+    logger.info("Processing: %s\n", rel_abs_path)
     content, checksum = parse_anymarkup_file(path, spec.checksum_field_name)
     return rel_abs_path, content, checksum
 
@@ -87,7 +88,7 @@ def bundle_resource_spec(spec: Spec) -> tuple[str, dict]:
     path = spec.root / spec.name
     rel_abs_path = path.as_posix().removeprefix(spec.work_dir.as_posix())
 
-    logging.info("Resource: %s\n", rel_abs_path)
+    logger.info("Resource: %s\n", rel_abs_path)
     data = path.read_bytes()
     content = data.decode("utf-8")
     schema = get_schema_from_resource(path, content)
