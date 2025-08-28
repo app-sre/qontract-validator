@@ -21,13 +21,6 @@ def metaschema_schema(
 
 
 @pytest.fixture
-def json_schema_spec_draft_06_schema(
-    fixture_factory: Callable[[str, str], Any],
-) -> dict[str, Any]:
-    return fixture_factory("validator", "json-schema-spec-draft-06.json")
-
-
-@pytest.fixture
 def common_schema(
     fixture_factory: Callable[[str, str], Any],
 ) -> dict[str, Any]:
@@ -47,7 +40,6 @@ def bundle_and_expected_results_factory(
     bundle_factory: Callable[[dict[str, Any]], Bundle],
     common_schema: dict[str, Any],
     metaschema_schema: dict[str, Any],
-    json_schema_spec_draft_06_schema: dict[str, Any],
     graphql_schema: dict[str, Any],
 ) -> Callable[[str], tuple[Bundle, list[ValidationResult]]]:
     def _bundle_and_expected_results_factory(
@@ -56,9 +48,6 @@ def bundle_and_expected_results_factory(
         fxt = fixture_factory("validator", fixture)
         fxt["schemas"]["/common-1.json"] = common_schema
         fxt["schemas"]["/metaschema-1.json"] = metaschema_schema
-        fxt["schemas"]["/json-schema-spec-draft-06.json"] = (
-            json_schema_spec_draft_06_schema
-        )
         fxt["schemas"]["/app-interface/graphql-schemas-1.yml"] = graphql_schema
         bundle = bundle_factory(fxt)
         expected_results = list(fxt.get("expected_results", []))
@@ -82,6 +71,7 @@ def validation_result_key(result: ValidationResult) -> str:
         "schema_missing_schema_url.yml",
         "schema_validation_error.yml",
         "schema_schema_error.yml",
+        "schema_wrong_meta_schema.yml",
         "file_missing_schema_url.yml",
         "file_missing_schema_url_graphql.yml",
         "file_schema_not_found.yml",

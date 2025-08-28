@@ -1,6 +1,6 @@
 schemas:
   "/schema-1.yml":
-    $schema: "/metaschema-1.json"
+    $schema: "/unknown-1.json"
     version: '1.0'
     additionalProperties: false
     properties:
@@ -11,27 +11,15 @@ schemas:
       $file_sha256sum:
         type: string
         description: sha256sum of the datafile
-      array_field:
-        type: array
-        items:
-          properties:
-            simple_field:
-              type: string
-            __identifier:
-              type: string
+      simple_field:
+        type: string
 graphql:
   $schema: "/app-interface/graphql-schemas-1.yml"
   confs:
   - name: Schema_v1
     fields:
-    - name: array_field
-      type: AnotherSchema_v1
-      isList: true
-  - name: AnotherSchema_v1
-    fields:
     - name: simple_field
       type: string
-      isContextUnique: true
   - name: Query
     fields:
     - type: Schema_v1
@@ -40,11 +28,7 @@ graphql:
 data:
   file-1-schema-1.yml:
     $schema: /schema-1.yml
-    array_field:
-    - simple_field: bla
-      __identifier: "128ecf542a35ac5270a87dc740918404"
-    - simple_field: bla
-      __identifier: "128ecf542a35ac5270a87dc740918404"
+    simple_field: bla
     $file_sha256sum: "d485511a659995bb7d03e9af6942bbb63a4700f53411f247a6a6c2ea3b0386bf"
 resources: {}
 expected_results:
@@ -69,9 +53,11 @@ expected_results:
 - kind: SCHEMA
   filename: /schema-1.yml
   result:
-    status: OK
-    schema_url: /metaschema-1.json
-    summary: "OK: /schema-1.yml (/metaschema-1.json)"
+    status: ERROR
+    reason: META_SCHEMA_NOT_FOUND
+    error: "Meta schema /unknown-1.json not found in the file /schema-1.yml"
+    schema_url: /unknown-1.json
+    summary: "ERROR: /schema-1.yml (/unknown-1.json)"
 - kind: FILE
   filename: file-1-schema-1.yml
   result:
@@ -84,10 +70,3 @@ expected_results:
     status: OK
     schema_url: /app-interface/graphql-schemas-1.yml
     summary: "OK: graphql-schemas/schema.yml (/app-interface/graphql-schemas-1.yml)"
-- kind: UNIQUE
-  filename: file-1-schema-1.yml
-  result:
-    status: ERROR
-    reason: DUPLICATE_CONTEXT_UNIQUE_FIELD
-    error: "Context uniqueness error, file: file-1-schema-1.yml, fields: simple_field, duplicates: array_field/0, array_field/1"
-    summary: "ERROR: file-1-schema-1.yml"
