@@ -1,6 +1,5 @@
 from collections import defaultdict
 from dataclasses import dataclass
-from functools import cached_property
 from typing import Any
 
 from validator.bundle import Backref, Bundle, GraphqlType
@@ -33,7 +32,7 @@ class ContextUniqueNode:
     path: str
     jsonpath: str
 
-    @cached_property
+    @property
     def identifier(self) -> str | None:
         data = {k: v for k, v in self.data.items() if k in self.props}
         if not data:
@@ -73,17 +72,46 @@ def postprocess_bundle(
 def patch_context_unique_schema_and_data(
     context_unique_node: ContextUniqueNode,
 ) -> None:
-    if not context_unique_node.identifier:
+    """
+    Patch the schema and data of a context unique node to include an identifier field.
+
+    When schema has properties, `__identifier` schema is added to properties.
+    When schema_one_of_root exists, `__identifier` schema is added to the oneOf root level properties.
+    When schema has oneOf, which means we don't know which schema is matched,
+    `__identifier` schema is added to each oneOf schema's `properties`.
+
+    Args:
+        context_unique_node (ContextUniqueNode): The context unique node to patch.
+    Returns:
+        None
+    """
+    identifier = context_unique_node.identifier
+    if identifier is None:
         return
-    context_unique_node.schema["properties"].update(IDENTIFIER_SCHEMA)
-    if (one_of_root := context_unique_node.schema_one_of_root) and isinstance(
-        one_of_root, dict
+
+    if (properties := context_unique_node.schema.get("properties")) and isinstance(
+        properties, dict
     ):
-        if "properties" not in one_of_root:
-            one_of_root["properties"] = IDENTIFIER_SCHEMA
-        else:
-            one_of_root["properties"].update(IDENTIFIER_SCHEMA)
-    context_unique_node.data[IDENTIFIER_FIELD_NAME] = context_unique_node.identifier
+        properties.update(IDENTIFIER_SCHEMA)
+
+    if (
+        (one_of_root := context_unique_node.schema_one_of_root)
+        and isinstance(one_of_root, dict)
+        and (properties := one_of_root.get("properties"))
+        and isinstance(properties, dict)
+    ):
+        properties.update(IDENTIFIER_SCHEMA)
+
+    if "oneOf" in context_unique_node.schema:
+        for one in context_unique_node.schema["oneOf"] or []:
+            if (
+                isinstance(one, dict)
+                and (properties := one.get("properties"))
+                and isinstance(properties, dict)
+            ):
+                properties.update(IDENTIFIER_SCHEMA)
+
+    context_unique_node.data[IDENTIFIER_FIELD_NAME] = identifier
 
 
 def patch_schema_checksum_field(

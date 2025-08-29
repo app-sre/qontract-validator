@@ -34,6 +34,10 @@ from validator.postprocess import postprocess_bundle
             "context_unique_crossref_field.expected.yml",
         ),
         (
+            "context_unique_one_of_array_without_field_map.yml",
+            "context_unique_one_of_array_without_field_map.expected.yml",
+        ),
+        (
             "unique_crossref_array_duplicate.yml",
             "unique_crossref_array_duplicate.expected.yml",
         ),
