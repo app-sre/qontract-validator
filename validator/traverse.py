@@ -47,6 +47,17 @@ class Node:
         return None
 
 
+class GraphqlInfo(NamedTuple):
+    graphql_type: GraphqlType | None
+    graphql_field: GraphqlField | None
+
+
+class SchemaInfo(NamedTuple):
+    schema_path: str | None
+    schema: Any
+    schema_one_of_root: Any
+
+
 def traverse_data(bundle: Bundle) -> Iterator[Node]:
     """
     Traverse the data files in the bundle and yield nodes representing each data item.
@@ -60,20 +71,11 @@ def traverse_data(bundle: Bundle) -> Iterator[Node]:
     """
     for datafile_path, datafile in bundle.data.items():
         datafile_schema = datafile.get("$schema")
-        schema = bundle.schemas.get(datafile_schema, {}) if datafile_schema else None
-        graphql_type = (
-            bundle.graphql_lookup.get_by_schema(datafile_schema)
-            if datafile_schema
-            else None
-        )
-        schema_info = _resolve_schema(
-            schema_path=datafile_schema,
-            schema=schema,
+        schema_info, graphql_type_name = _get_init_schema_info_and_graphql_type_name(
             bundle=bundle,
-            data=datafile,
-            graphql_type=graphql_type,
+            datafile=datafile,
+            datafile_schema=datafile_schema,
         )
-        graphql_type_name = _get_init_graphql_type_name(bundle, graphql_type, datafile)
         node = Node(
             bundle=bundle,
             data=datafile,
@@ -90,18 +92,33 @@ def traverse_data(bundle: Bundle) -> Iterator[Node]:
         yield from _traverse_node(node)
 
 
-def _get_init_graphql_type_name(
+def _get_init_schema_info_and_graphql_type_name(
     bundle: Bundle,
-    graphql_type: GraphqlType | None,
-    datafile: Any,  # noqa: ANN401
-) -> str | None:
-    if not graphql_type:
-        return None
+    datafile: dict[str, Any],
+    datafile_schema: str | None,
+) -> tuple[SchemaInfo, str | None]:
+    if datafile_schema is None:
+        return SchemaInfo(None, None, None), None
+
+    schema = bundle.schemas.get(datafile_schema, {})
+    graphql_type = bundle.graphql_lookup.get_by_schema(datafile_schema)
+    schema_info = _resolve_schema(
+        schema_path=datafile_schema,
+        schema=schema,
+        bundle=bundle,
+        data=datafile,
+        graphql_type=graphql_type,
+    )
+
+    if graphql_type is None:
+        return schema_info, None
+
     if resolved_graphql_type := _resolve_graphql_interface_type(
         graphql_type, bundle, datafile
     ):
-        return resolved_graphql_type.name
-    return graphql_type.name
+        return schema_info, resolved_graphql_type.name
+
+    return schema_info, graphql_type.name
 
 
 def _traverse_node(node: Node) -> Iterator[Node]:
@@ -113,20 +130,8 @@ def _traverse_node(node: Node) -> Iterator[Node]:
         for index, value in enumerate(node.data):
             new_node = _next_list_node(node, index, value)
             yield from _traverse_node(new_node)
-        return
     else:
         yield node
-
-
-class GraphqlInfo(NamedTuple):
-    graphql_type: GraphqlType | None
-    graphql_field: GraphqlField | None
-
-
-class SchemaInfo(NamedTuple):
-    schema_path: str | None
-    schema: Any
-    schema_one_of_root: Any
 
 
 def _next_dict_node(
