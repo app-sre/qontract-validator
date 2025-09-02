@@ -1,0 +1,114 @@
+schemas:
+  "/schema-1.yml":
+    $schema: "/metaschema-1.json"
+    version: '1.0'
+    additionalProperties: false
+    properties:
+      $schema:
+        type: string
+        enum:
+        - "/schema-1.yml"
+      $file_sha256sum:
+        type: string
+        description: sha256sum of the datafile
+      crossref_field:
+        "$ref": "/common-1.json#/definitions/crossref"
+        # wrong schema ref
+        "$schemaRef": "/wrong-schema-1.yml"
+  "/another-schema-1.yml":
+    $schema: "/metaschema-1.json"
+    version: '1.0'
+    additionalProperties: false
+    properties:
+      $schema:
+        type: string
+        enum:
+        - "/another-schema-1.yml"
+      $file_sha256sum:
+        type: string
+        description: sha256sum of the datafile
+      another_simple_field:
+        type: string
+graphql:
+  $schema: "/app-interface/graphql-schemas-1.yml"
+  confs:
+  - name: Schema_v1
+    fields:
+    - name: crossref_field
+      type: AnotherSchema_v1
+  - name: AnotherSchema_v1
+    datafile: "/another-schema-1.yml"
+    fields:
+    - name: another_simple_field
+      type: string
+  - name: Query
+    fields:
+    - type: Schema_v1
+      name: schema_v1
+      datafileSchema: "/schema-1.yml"
+data:
+  /file-1-schema-1.yml:
+    $schema: /schema-1.yml
+    crossref_field:
+      $ref: /file-2-another-schema-1.yml
+    $file_sha256sum: "d485511a659995bb7d03e9af6942bbb63a4700f53411f247a6a6c2ea3b0386bf"
+  /file-2-another-schema-1.yml:
+    $schema: /another-schema-1.yml
+    another_simple_field: bla
+resources: {}
+expected_results:
+- kind: SCHEMA
+  filename: /common-1.json
+  result:
+    status: OK
+    schema_url: http://json-schema.org/draft-06/schema
+    summary: "OK: /common-1.json (http://json-schema.org/draft-06/schema)"
+- kind: SCHEMA
+  filename: /metaschema-1.json
+  result:
+    status: OK
+    schema_url: http://json-schema.org/draft-06/schema
+    summary: "OK: /metaschema-1.json (http://json-schema.org/draft-06/schema)"
+- kind: SCHEMA
+  filename: /app-interface/graphql-schemas-1.yml
+  result:
+    status: OK
+    schema_url: /metaschema-1.json
+    summary: "OK: /app-interface/graphql-schemas-1.yml (/metaschema-1.json)"
+- kind: SCHEMA
+  filename: /schema-1.yml
+  result:
+    status: OK
+    schema_url: /metaschema-1.json
+    summary: "OK: /schema-1.yml (/metaschema-1.json)"
+- kind: SCHEMA
+  filename: /another-schema-1.yml
+  result:
+    status: OK
+    schema_url: /metaschema-1.json
+    summary: "OK: /another-schema-1.yml (/metaschema-1.json)"
+- kind: FILE
+  filename: /file-1-schema-1.yml
+  result:
+    status: OK
+    schema_url: /schema-1.yml
+    summary: "OK: /file-1-schema-1.yml (/schema-1.yml)"
+- kind: FILE
+  filename: /file-2-another-schema-1.yml
+  result:
+    status: OK
+    schema_url: /another-schema-1.yml
+    summary: "OK: /file-2-another-schema-1.yml (/another-schema-1.yml)"
+- kind: FILE
+  filename: graphql-schemas/schema.yml
+  result:
+    status: OK
+    schema_url: /app-interface/graphql-schemas-1.yml
+    summary: "OK: graphql-schemas/schema.yml (/app-interface/graphql-schemas-1.yml)"
+- kind: REF
+  filename: /file-1-schema-1.yml
+  result:
+    status: ERROR
+    reason: INCORRECT_SCHEMA
+    summary: "ERROR: /file-1-schema-1.yml"
+    error: "incorrect schema: got `/another-schema-1.yml`, expecting `/wrong-schema-1.yml`"

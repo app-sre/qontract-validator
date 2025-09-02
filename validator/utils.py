@@ -2,8 +2,11 @@ import hashlib
 import json
 from enum import StrEnum
 from pathlib import Path, PurePath
+from typing import IO, Any
 
 import yaml
+
+JSON_COMPACT_SEPARATORS = (",", ":")
 
 
 class FileType(StrEnum):
@@ -26,10 +29,45 @@ def get_checksum(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def load_yaml(data: bytes) -> dict:
+def load_yaml(data: str | bytes) -> dict:
     if hasattr(yaml, "CSafeLoader"):
         return yaml.load(data, Loader=yaml.CSafeLoader)
     return yaml.load(data, Loader=yaml.SafeLoader)
+
+
+def json_dumps(
+    data: Any,  # noqa: ANN401,
+    *,
+    compact: bool = False,
+    indent: int | None = None,
+    sort_keys: bool = False,
+) -> str:
+    separators = JSON_COMPACT_SEPARATORS if compact else None
+    return json.dumps(
+        data,
+        indent=indent,
+        separators=separators,
+        sort_keys=sort_keys,
+    )
+
+
+def json_dump(
+    data: Any,  # noqa: ANN401
+    out: IO,
+    *,
+    compact: bool = False,
+    indent: int | None = None,
+    sort_keys: bool = False,
+) -> None:
+    separators = JSON_COMPACT_SEPARATORS if compact else None
+    json.dump(
+        data,
+        out,
+        indent=indent,
+        separators=separators,
+        sort_keys=sort_keys,
+    )
+    out.write("\n")
 
 
 def parse_anymarkup_file(
@@ -42,13 +80,9 @@ def parse_anymarkup_file(
             res = load_yaml(content)
         case FileType.JSON:
             content = path.read_bytes()
-            res = _load_json(content)
+            res = json.loads(content)
         case _:
             msg = f"markup parsing for extension {path.suffix} is not implemented"
             raise NotImplementedError(msg)
     checksum = get_checksum(content) if checksum_field_name else None
     return res, checksum
-
-
-def _load_json(data: bytes) -> dict:
-    return json.loads(data)

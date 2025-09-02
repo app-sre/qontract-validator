@@ -1,0 +1,83 @@
+from abc import ABC, abstractmethod
+from collections.abc import Iterable
+from dataclasses import dataclass
+from typing import Any
+
+
+class JSONPath(ABC):
+    @abstractmethod
+    def to_expression(self) -> str:
+        pass
+
+    @abstractmethod
+    def read(self, data: Any) -> Any:  # noqa: ANN401
+        pass
+
+
+@dataclass(frozen=True)
+class JSONPathField(JSONPath):
+    field: str
+
+    def to_expression(self) -> str:
+        return self.field
+
+    def read(self, data: Any) -> Any:  # noqa: ANN401
+        return data.get(self.field)
+
+
+@dataclass(frozen=True)
+class JSONPathIndex(JSONPath):
+    index: int
+
+    def to_expression(self) -> str:
+        return f"[{self.index}]"
+
+    def read(self, data: Any) -> Any:  # noqa: ANN401
+        return data[self.index]
+
+
+def build_jsonpath(jsonpaths: Iterable[JSONPath]) -> str:
+    """
+    Build a JSONPath expression from a list of JsonPath objects.
+
+    Args:
+        jsonpaths (Iterable[JSONPath]): An iterable of JsonPath objects.
+    Returns:
+        str: A string representing the JSONPath expression.
+    """
+    return ".".join(path.to_expression() for path in jsonpaths)
+
+
+def read_jsonpath(data: Any, jsonpaths: Iterable[JSONPath]) -> Any:  # noqa: ANN401
+    """
+    Read data from a JSON object using a list of JsonPath objects.
+
+    Args:
+        data (Any): The JSON object to read from.
+        jsonpaths (Iterable[JSONPath]): An iterable of JsonPath objects.
+    Returns:
+        Any: The value extracted from the JSON object using the provided JsonPath objects.
+    """
+    result = data
+    for path in jsonpaths:
+        result = path.read(result)
+    return result
+
+
+def parse_jsonpath(jsonpath: str) -> list[JSONPath]:
+    """
+    Parse a JSONPath string into a list of JSONPath objects.
+
+    Args:
+        jsonpath (str): The JSONPath string to parse.
+    Returns:
+        list[JSONPath]: A list of JSONPath objects representing the parsed path.
+    """
+    if not jsonpath:
+        return []
+    return [
+        JSONPathIndex(int(part[1:-1]))
+        if part.startswith("[") and part.endswith("]")
+        else JSONPathField(part)
+        for part in jsonpath.split(".")
+    ]

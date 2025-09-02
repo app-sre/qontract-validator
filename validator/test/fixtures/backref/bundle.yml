@@ -5,6 +5,7 @@ schemas:
         type: string
       simple_ref:
         "$ref": "/common-1.json#/definitions/resourceref"
+        description: "A reference to a resource, e.g. /resource-1.yml"
       simple_object:
         type: object
         properties:
@@ -12,6 +13,7 @@ schemas:
             type: string
           simple_nested_ref:
             "$ref": "/common-1.json#/definitions/resourceref"
+            description: "A reference to a resource, e.g. /resource-1.yml"
       schema_ref_field:
         "$ref": "embedded-schema-1.yml"
       array_field_to_nested_refs:
@@ -23,6 +25,7 @@ schemas:
               type: string
             simple_nested_ref:
               "$ref": "/common-1.json#/definitions/resourceref"
+              description: "A reference to a resource, e.g. /resource-1.yml"
       one_of_ref_array:
         type: array
         items:
@@ -37,6 +40,7 @@ schemas:
         type: string
       simple_ref:
         "$ref": "/common-1.json#/definitions/resourceref"
+        description: "A reference to a resource, e.g. /resource-1.yml"
       simple_object:
         type: object
         properties:
@@ -44,6 +48,7 @@ schemas:
             type: string
           simple_nested_ref:
             "$ref": "/common-1.json#/definitions/resourceref"
+            description: "A reference to a resource, e.g. /resource-1.yml"
 
   "another-schema-1.yml":
     properties:
@@ -51,6 +56,7 @@ schemas:
         type: string
       simple_ref:
         "$ref": "/common-1.json#/definitions/resourceref"
+        description: "A reference to a resource, e.g. /resource-1.yml"
       simple_object:
         type: object
         properties:
@@ -58,6 +64,7 @@ schemas:
             type: string
           simple_nested_ref:
             "$ref": "/common-1.json#/definitions/resourceref"
+            description: "A reference to a resource, e.g. /resource-1.yml"
       schema_loop_field:
         "$ref": "/common-1.json#/definitions/crossref"
         "$schemaRef": "schema-1.yml"
@@ -75,6 +82,7 @@ schemas:
           - flavour-1
         a_field:
           "$ref": "/common-1.json#/definitions/resourceref"
+          description: "A reference to a resource, e.g. /resource-1.yml"
     - properties:
         type_field:
           type:
@@ -93,7 +101,7 @@ graphql:
       type: string
     - name: simple_ref
       type: string
-      isResourceRef: true
+      isResource: true
     - name: simple_object
       type: SimpleObject_v1
     - name: schema_ref_field
@@ -113,7 +121,7 @@ graphql:
       type: string
     - name: simple_nested_ref
       type: string
-      isResourceRef: true
+      isResource: true
 
   - name: EmbeddedSchema_v1
     fields:
@@ -121,7 +129,7 @@ graphql:
       type: string
     - name: simple_ref
       type: string
-      isResourceRef: true
+      isResource: true
     - name: simple_object
       type: SimpleObject_v1
 
@@ -131,7 +139,7 @@ graphql:
       type: string
     - name: simple_ref
       type: string
-      isResourceRef: true
+      isResource: true
     - name: simple_object
       type: SimpleObject_v1
     - name: schema_loop_field
@@ -154,7 +162,7 @@ graphql:
     fields:
     - name: a_field
       type: string
-      isResourceRef: true
+      isResource: true
 
   - name: SubType_v2
     interface: OneOfType_v1
@@ -165,8 +173,10 @@ graphql:
   - name: Query
     fields:
     - type: Schema_v1
+      name: schema_v1
       datafileSchema: "schema-1.yml"
     - type: AnotherSchema_v1
+      name: another_schema_v1
       datafileSchema: "another-schema-1.yml"
 
 data:

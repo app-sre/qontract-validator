@@ -1,0 +1,49 @@
+schemas:
+  "schema-1.yml":
+    $schema: "/metaschema-1.json"
+    properties:
+      simple_ref:
+        "$ref": "/common-1.json#/definitions/resourceref"
+graphql:
+  $schema: "graphql-schema-1.yml"
+  confs:
+  - name: Schema_v1
+    fields:
+    - name: simple_ref
+      type: string
+      isResource: true
+  - name: Query
+    fields:
+    - type: Schema_v1
+      name: schema_v1
+      datafileSchema: "schema-1.yml"
+data:
+  file-1-schema-1.yml:
+    $schema: schema-1.yml
+    simple_ref: /resource-1.yml
+resources:
+  /resource-1.yml:
+    backrefs: []
+expected_nodes:
+- data: /resource-1.yml
+  file_schema_path: schema-1.yml
+  graphql_field_name: simple_ref
+  graphql_type_name: Schema_v1
+  jsonpath: simple_ref
+  path: file-1-schema-1.yml
+  schema:
+    $ref: /common-1.json#/definitions/resourceref
+  schema_path: schema-1.yml
+  parent:
+    data:
+      $schema: schema-1.yml
+      simple_ref: /resource-1.yml
+    file_schema_path: schema-1.yml
+    graphql_type_name: Schema_v1
+    path: file-1-schema-1.yml
+    schema:
+      $schema: "/metaschema-1.json"
+      properties:
+        simple_ref:
+          "$ref": "/common-1.json#/definitions/resourceref"
+    schema_path: schema-1.yml

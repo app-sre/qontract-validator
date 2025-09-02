@@ -1,0 +1,73 @@
+schemas:
+  "/schema-1.yml":
+    $schema: "/metaschema-1.json"
+    version: '1.0'
+    additionalProperties: false
+    properties:
+      $schema:
+        type: string
+        enum:
+        - "/schema-1.yml"
+      $file_sha256sum:
+        type: string
+        description: sha256sum of the datafile
+      simple_field:
+        type: string
+graphql:
+  $schema: "/app-interface/graphql-schemas-1.yml"
+  confs:
+  - name: Schema_v1
+    fields:
+    # wrong name type, should be string
+    - name: 123
+      type: string
+  - name: Query
+    fields:
+    - type: Schema_v1
+      name: schema_v1
+      datafileSchema: "/schema-1.yml"
+data:
+  file-1-schema-1.yml:
+    $schema: /schema-1.yml
+    simple_field: bla
+    $file_sha256sum: "d485511a659995bb7d03e9af6942bbb63a4700f53411f247a6a6c2ea3b0386bf"
+resources: {}
+expected_results:
+- kind: SCHEMA
+  filename: /common-1.json
+  result:
+    status: OK
+    schema_url: http://json-schema.org/draft-06/schema
+    summary: "OK: /common-1.json (http://json-schema.org/draft-06/schema)"
+- kind: SCHEMA
+  filename: /metaschema-1.json
+  result:
+    status: OK
+    schema_url: http://json-schema.org/draft-06/schema
+    summary: "OK: /metaschema-1.json (http://json-schema.org/draft-06/schema)"
+- kind: SCHEMA
+  filename: /app-interface/graphql-schemas-1.yml
+  result:
+    status: OK
+    schema_url: /metaschema-1.json
+    summary: "OK: /app-interface/graphql-schemas-1.yml (/metaschema-1.json)"
+- kind: SCHEMA
+  filename: /schema-1.yml
+  result:
+    status: OK
+    schema_url: /metaschema-1.json
+    summary: "OK: /schema-1.yml (/metaschema-1.json)"
+- kind: FILE
+  filename: file-1-schema-1.yml
+  result:
+    status: OK
+    schema_url: /schema-1.yml
+    summary: "OK: file-1-schema-1.yml (/schema-1.yml)"
+- kind: FILE
+  filename: graphql-schemas/schema.yml
+  result:
+    status: ERROR
+    schema_url: /app-interface/graphql-schemas-1.yml
+    reason: VALIDATION_ERROR
+    error: "123 is not of type 'string'"
+    summary: "ERROR: graphql-schemas/schema.yml (/app-interface/graphql-schemas-1.yml)"

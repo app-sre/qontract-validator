@@ -1,0 +1,72 @@
+schemas:
+  "schema-1.yml":
+    $schema: "/metaschema-1.json"
+    properties:
+      simple_object:
+        type: object
+        properties:
+          simple_nested_field:
+            type: string
+graphql:
+  $schema: "graphql-schema-1.yml"
+  confs:
+  - name: Schema_v1
+    fields:
+    - name: simple_object
+      type: SimpleObject_v1
+  - name: SimpleObject_v1
+    fields:
+    - name: simple_nested_field
+      type: string
+  - name: Query
+    fields:
+    - type: Schema_v1
+      name: schema_v1
+      datafileSchema: "schema-1.yml"
+data:
+  file-1-schema-1.yml:
+    $schema: schema-1.yml
+    simple_object:
+      simple_nested_field: bla
+resources: {}
+expected_nodes:
+- data: bla
+  file_schema_path: schema-1.yml
+  graphql_field_name: simple_nested_field
+  graphql_type_name: SimpleObject_v1
+  jsonpath: simple_object.simple_nested_field
+  path: file-1-schema-1.yml
+  schema:
+    type: string
+  schema_path: schema-1.yml
+  parent:
+    data:
+      simple_nested_field: bla
+    file_schema_path: schema-1.yml
+    graphql_field_name: simple_object
+    graphql_type_name: Schema_v1
+    jsonpath: simple_object
+    path: file-1-schema-1.yml
+    schema:
+      type: object
+      properties:
+        simple_nested_field:
+          type: string
+    schema_path: schema-1.yml
+    parent:
+      data:
+        $schema: schema-1.yml
+        simple_object:
+          simple_nested_field: bla
+      file_schema_path: schema-1.yml
+      graphql_type_name: Schema_v1
+      path: file-1-schema-1.yml
+      schema:
+        $schema: "/metaschema-1.json"
+        properties:
+          simple_object:
+            type: object
+            properties:
+              simple_nested_field:
+                type: string
+      schema_path: schema-1.yml

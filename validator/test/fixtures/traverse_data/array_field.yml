@@ -1,0 +1,66 @@
+schemas:
+  "schema-1.yml":
+    $schema: "/metaschema-1.json"
+    properties:
+      array_field:
+        type: array
+        items:
+          type: string
+graphql:
+  $schema: "graphql-schema-1.yml"
+  confs:
+  - name: Schema_v1
+    fields:
+    - name: array_field
+      type: string
+      isList: true
+  - name: Query
+    fields:
+    - type: Schema_v1
+      name: schema_v1
+      datafileSchema: "schema-1.yml"
+data:
+  file-1-schema-1.yml:
+    $schema: schema-1.yml
+    array_field:
+    - bla
+resources: {}
+expected_nodes:
+- data: bla
+  file_schema_path: schema-1.yml
+  graphql_field_name: array_field
+  graphql_type_name: Schema_v1
+  jsonpath: array_field.[0]
+  path: file-1-schema-1.yml
+  schema:
+    type: string
+  schema_path: schema-1.yml
+  parent:
+    data:
+    - bla
+    file_schema_path: schema-1.yml
+    graphql_field_name: array_field
+    graphql_type_name: Schema_v1
+    jsonpath: array_field
+    path: file-1-schema-1.yml
+    schema:
+      type: array
+      items:
+        type: string
+    schema_path: schema-1.yml
+    parent:
+      data:
+        $schema: schema-1.yml
+        array_field:
+        - bla
+      file_schema_path: schema-1.yml
+      graphql_type_name: Schema_v1
+      path: file-1-schema-1.yml
+      schema:
+        $schema: "/metaschema-1.json"
+        properties:
+          array_field:
+            type: array
+            items:
+              type: string
+      schema_path: schema-1.yml

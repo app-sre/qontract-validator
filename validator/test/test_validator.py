@@ -1,42 +1,188 @@
-from validator import validator
-from validator.test.fixtures import Fixtures
+import json
+from collections.abc import Callable
+from dataclasses import asdict
+from io import StringIO
+from pathlib import Path
+from typing import Any
+from unittest.mock import patch
+
+import pytest
+
+from validator.bundle import Bundle
+from validator.utils import json_dump
+from validator.validator import ValidationResult, main, validate_bundle
 
 
-class TestGetSchemaInfoFromPointer:
-    fxt = Fixtures("get_schema_info_from_pointer")
+@pytest.fixture
+def metaschema_schema(
+    fixture_factory: Callable[[str, str], Any],
+) -> dict[str, Any]:
+    return fixture_factory("validator", "metaschema-1.json")
 
-    def do_fxt_test(self, fxt_path):
-        fixture = self.fxt.get_anymarkup(self.fxt.path(fxt_path))
 
-        obj = validator.get_schema_info_from_pointer(
-            fixture["schema"], fixture["ptr"], fixture.get("schemas_bundle", {})
+@pytest.fixture
+def common_schema(
+    fixture_factory: Callable[[str, str], Any],
+) -> dict[str, Any]:
+    return fixture_factory("validator", "common-1.json")
+
+
+@pytest.fixture
+def graphql_schema(
+    fixture_factory: Callable[[str, str], Any],
+) -> dict[str, Any]:
+    return fixture_factory("validator", "graphql-schemas-1.yml")
+
+
+@pytest.fixture
+def bundle_and_expected_results_factory(
+    fixture_factory: Callable[[str, str], Any],
+    bundle_factory: Callable[[dict[str, Any]], Bundle],
+    common_schema: dict[str, Any],
+    metaschema_schema: dict[str, Any],
+    graphql_schema: dict[str, Any],
+) -> Callable[[str], tuple[Bundle, list[ValidationResult]]]:
+    def _bundle_and_expected_results_factory(
+        fixture: str,
+    ) -> tuple[Bundle, list[ValidationResult]]:
+        fxt = fixture_factory("validator", fixture)
+        fxt["schemas"]["/common-1.json"] = common_schema
+        fxt["schemas"]["/metaschema-1.json"] = metaschema_schema
+        fxt["schemas"]["/app-interface/graphql-schemas-1.yml"] = graphql_schema
+        bundle = bundle_factory(fxt)
+        expected_results = list(fxt.get("expected_results", []))
+        return bundle, expected_results
+
+    return _bundle_and_expected_results_factory
+
+
+def validation_result_key(result: ValidationResult) -> str:
+    return ":".join([
+        result["filename"],
+        result["kind"],
+        result["result"]["status"],
+    ])
+
+
+@pytest.mark.parametrize(
+    "fixture",
+    [
+        "valid.yml",
+        "schema_missing_schema_url.yml",
+        "schema_validation_error.yml",
+        "schema_schema_error.yml",
+        "schema_wrong_meta_schema.yml",
+        "file_missing_schema_url.yml",
+        "file_missing_schema_url_graphql.yml",
+        "file_schema_not_found.yml",
+        "file_validation_error.yml",
+        "file_validation_error_graphql.yml",
+        "file_resource_file_not_found.yml",
+        "duplicate_unique_fields.yml",
+        "duplicate_unique_interface_fields.yml",
+        "duplicate_context_unique_fields.yml",
+        "duplicate_context_unique_crossref_fields.yml",
+        "resource_invalid_yaml_skip.yml",
+        "resource_schema_not_found.yml",
+        "resource_validation_error.yml",
+        "ref_file_not_found.yml",
+        "ref_incorrect_schema.yml",
+        "ref_schema_ref_validation_error.yml",
+        "graphql_is_unique_on_non_top_level_type.yml",
+        "graphql_is_unique_on_complex_field.yml",
+    ],
+)
+def test_validate_bundle(
+    bundle_and_expected_results_factory: Callable[
+        [str],
+        tuple[Bundle, list[ValidationResult]],
+    ],
+    fixture: str,
+) -> None:
+    bundle, expected_results = bundle_and_expected_results_factory(fixture)
+
+    results = list(validate_bundle(bundle))
+
+    assert len(results) == len(expected_results)
+    for result, expected in zip(
+        sorted(results, key=validation_result_key),
+        sorted(expected_results, key=validation_result_key),
+        strict=True,
+    ):
+        assert result["kind"] == expected["kind"]
+        assert result["filename"] == expected["filename"]
+        assert result["result"]["summary"] == expected["result"]["summary"]
+        assert result["result"]["status"] == expected["result"]["status"]
+        assert result["result"].get("schema_url") == expected["result"].get(
+            "schema_url"
         )
+        assert result["result"].get("reason") == expected["result"].get("reason")
+        assert expected["result"].get("error", "") in result["result"].get("error", "")
 
-        assert fixture["result"] == obj
 
-    def test_object(self):
-        self.do_fxt_test("object.yml")
+def test_validator_main(
+    bundle_and_expected_results_factory: Callable[
+        [str],
+        tuple[Bundle, list[ValidationResult]],
+    ],
+    tmp_path: Path,
+) -> None:
+    bundle, expected_results = bundle_and_expected_results_factory("valid.yml")
+    bundlefile = tmp_path / "bundle.json"
+    with bundlefile.open("w", encoding="utf-8") as f:
+        json_dump(asdict(bundle), f, compact=True, sort_keys=True)
 
-    def test_object_array(self):
-        self.do_fxt_test("object_array.yml")
+    mock_args = [
+        "qontract-validator",
+        str(bundlefile),
+    ]
 
-    def test_object_object(self):
-        self.do_fxt_test("object_object.yml")
+    captured_output = StringIO()
+    with (
+        patch("sys.argv", mock_args),
+        patch("sys.stdout", captured_output),
+    ):
+        main()
 
-    def test_complex(self):
-        self.do_fxt_test("complex.yml")
+    output = captured_output.getvalue()
+    sorted_expected_results = sorted(expected_results, key=validation_result_key)
+    sorted_actual_results = sorted(json.loads(output), key=validation_result_key)
+    assert sorted_actual_results == sorted_expected_results
 
-    def test_external_ref(self):
-        self.do_fxt_test("external_ref.yml")
 
-    def test_one_of(self):
-        self.do_fxt_test("one_of.yml")
+def test_validator_main_errors(
+    bundle_and_expected_results_factory: Callable[
+        [str],
+        tuple[Bundle, list[ValidationResult]],
+    ],
+    tmp_path: Path,
+) -> None:
+    bundle, expected_results = bundle_and_expected_results_factory(
+        "schema_missing_schema_url.yml"
+    )
+    bundlefile = tmp_path / "bundle.json"
+    with bundlefile.open("w", encoding="utf-8") as f:
+        json_dump(asdict(bundle), f, compact=True, sort_keys=True)
 
-    def test_one_of_multiple(self):
-        self.do_fxt_test("one_of_multiple.yml")
+    mock_args = [
+        "qontract-validator",
+        "--only-errors",
+        str(bundlefile),
+    ]
 
-    def test_external_ref_obj(self):
-        self.do_fxt_test("external_ref_obj.yml")
+    captured_output = StringIO()
+    with (
+        patch("sys.argv", mock_args),
+        patch("sys.stdout", captured_output),
+        pytest.raises(SystemExit) as excinfo,
+    ):
+        main()
 
-    def test_external_ref_obj_oneof(self):
-        self.do_fxt_test("external_ref_obj_oneof.yml")
+    assert excinfo.value.code == 1
+    output = captured_output.getvalue()
+    sorted_expected_results = sorted(
+        (r for r in expected_results if r["result"]["status"] == "ERROR"),
+        key=validation_result_key,
+    )
+    sorted_actual_results = sorted(json.loads(output), key=validation_result_key)
+    assert sorted_actual_results == sorted_expected_results

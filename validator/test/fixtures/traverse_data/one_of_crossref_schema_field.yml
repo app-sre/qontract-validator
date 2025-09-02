@@ -1,0 +1,183 @@
+schemas:
+  "schema-1.yml":
+    $schema: "/metaschema-1.json"
+    properties:
+      array_field:
+        type: array
+        items:
+          oneOf:
+          - $ref: "another-schema-1.yml"
+          - $ref: "/common-1.json#/definitions/crossref"
+            $schemaRef: "another-schema-1.yml"
+  "another-schema-1.yml":
+    properties:
+      simple_field:
+        type: string
+graphql:
+  $schema: "graphql-schema-1.yml"
+  confs:
+  - name: Schema_v1
+    fields:
+    - name: array_field
+      type: AnotherSchema_v1
+      isList: true
+  - name: AnotherSchema_v1
+    datafile: "another-schema-1.yml"
+    fields:
+    - name: simple_field
+      type: string
+  - name: Query
+    fields:
+    - type: Schema_v1
+      name: schema_v1
+      datafileSchema: "schema-1.yml"
+data:
+  file-1-schema-1.yml:
+    $schema: schema-1.yml
+    array_field:
+    - simple_field: foo
+    - $ref: file-2-another-schema-1.yml
+  file-2-another-schema-1.yml:
+    $schema: another-schema-1.yml
+    simple_field: bar
+resources: {}
+expected_nodes:
+- data: foo
+  file_schema_path: schema-1.yml
+  graphql_field_name: simple_field
+  graphql_type_name: AnotherSchema_v1
+  jsonpath: array_field.[0].simple_field
+  path: file-1-schema-1.yml
+  schema:
+    type: string
+  schema_path: another-schema-1.yml
+  parent:
+    data:
+      simple_field: foo
+    file_schema_path: schema-1.yml
+    graphql_field_name: array_field
+    graphql_type_name: Schema_v1
+    jsonpath: array_field.[0]
+    path: file-1-schema-1.yml
+    schema:
+      properties:
+        simple_field:
+          type: string
+    schema_path: another-schema-1.yml
+    parent:
+      data:
+      - simple_field: foo
+      - $ref: file-2-another-schema-1.yml
+      file_schema_path: schema-1.yml
+      graphql_field_name: array_field
+      graphql_type_name: Schema_v1
+      jsonpath: array_field
+      path: file-1-schema-1.yml
+      schema:
+        type: array
+        items:
+          oneOf:
+          - $ref: "another-schema-1.yml"
+          - $ref: "/common-1.json#/definitions/crossref"
+            $schemaRef: "another-schema-1.yml"
+      schema_path: schema-1.yml
+      parent:
+        data:
+          $schema: schema-1.yml
+          array_field:
+          - simple_field: foo
+          - $ref: file-2-another-schema-1.yml
+        file_schema_path: schema-1.yml
+        graphql_type_name: Schema_v1
+        path: file-1-schema-1.yml
+        schema:
+          $schema: "/metaschema-1.json"
+          properties:
+            array_field:
+              type: array
+              items:
+                oneOf:
+                - $ref: "another-schema-1.yml"
+                - $ref: "/common-1.json#/definitions/crossref"
+                  $schemaRef: "another-schema-1.yml"
+        schema_path: schema-1.yml
+- data: file-2-another-schema-1.yml
+  file_schema_path: schema-1.yml
+  graphql_field_name: array_field
+  graphql_type_name: Schema_v1
+  jsonpath: array_field.[1].$ref
+  path: file-1-schema-1.yml
+  schema:
+    $ref: "/common-1.json#/definitions/crossref"
+    $schemaRef: "another-schema-1.yml"
+  schema_path: schema-1.yml
+  parent:
+    data:
+      $ref: file-2-another-schema-1.yml
+    file_schema_path: schema-1.yml
+    graphql_field_name: array_field
+    graphql_type_name: Schema_v1
+    jsonpath: array_field.[1]
+    path: file-1-schema-1.yml
+    schema:
+      $ref: "/common-1.json#/definitions/crossref"
+      $schemaRef: "another-schema-1.yml"
+    schema_path: schema-1.yml
+    parent:
+      data:
+      - simple_field: foo
+      - $ref: file-2-another-schema-1.yml
+      file_schema_path: schema-1.yml
+      graphql_field_name: array_field
+      graphql_type_name: Schema_v1
+      jsonpath: array_field
+      path: file-1-schema-1.yml
+      schema:
+        type: array
+        items:
+          oneOf:
+          - $ref: "another-schema-1.yml"
+          - $ref: "/common-1.json#/definitions/crossref"
+            $schemaRef: "another-schema-1.yml"
+      schema_path: schema-1.yml
+      parent:
+        data:
+          $schema: schema-1.yml
+          array_field:
+          - simple_field: foo
+          - $ref: file-2-another-schema-1.yml
+        file_schema_path: schema-1.yml
+        graphql_type_name: Schema_v1
+        path: file-1-schema-1.yml
+        schema:
+          $schema: "/metaschema-1.json"
+          properties:
+            array_field:
+              type: array
+              items:
+                oneOf:
+                - $ref: "another-schema-1.yml"
+                - $ref: "/common-1.json#/definitions/crossref"
+                  $schemaRef: "another-schema-1.yml"
+        schema_path: schema-1.yml
+- data: bar
+  file_schema_path: another-schema-1.yml
+  graphql_field_name: simple_field
+  graphql_type_name: AnotherSchema_v1
+  jsonpath: simple_field
+  path: file-2-another-schema-1.yml
+  schema:
+    type: string
+  schema_path: another-schema-1.yml
+  parent:
+    data:
+      $schema: another-schema-1.yml
+      simple_field: bar
+    file_schema_path: another-schema-1.yml
+    graphql_type_name: AnotherSchema_v1
+    path: file-2-another-schema-1.yml
+    schema:
+      properties:
+        simple_field:
+          type: string
+    schema_path: another-schema-1.yml

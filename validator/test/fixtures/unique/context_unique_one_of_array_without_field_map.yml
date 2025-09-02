@@ -1,0 +1,50 @@
+schemas:
+  "schema-1.yml":
+    properties:
+      one_of_array:
+        type: array
+        items:
+          oneOf:
+          - additionalProperties: false
+            properties:
+              simple_field:
+                type: string
+              a_field:
+                type: string
+          - additionalProperties: false
+            properties:
+              simple_field:
+                type: string
+              b_field:
+                type: string
+graphql:
+  $schema: "graphql-schema-1.yml"
+  confs:
+  - name: Schema_v1
+    fields:
+    - name: one_of_array
+      type: OneOfSchema_v1
+      isList: true
+  - name: OneOfSchema_v1
+    fields:
+    - name: simple_field
+      type: string
+      isContextUnique: true
+    - name: a_field
+      type: string
+    - name: b_field
+      type: string
+  - name: Query
+    fields:
+    - type: Schema_v1
+      name: schema_v1
+      datafileSchema: "schema-1.yml"
+data:
+  file-1-schema-1.yml:
+    $schema: schema-1.yml
+    one_of_array:
+    - simple_field: bla
+      a_field: a
+    - simple_field: bla
+      b_field: b
+resources: {}

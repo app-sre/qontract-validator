@@ -1,37 +1,29 @@
+from collections.abc import Callable
+
 import pytest
 
 from validator.bundle import Bundle
 from validator.postprocess import postprocess_bundle
-from validator.test.fixtures import Fixtures
 
 
-@pytest.fixture(params=["bundle.yml"])
-def bundle(request) -> Bundle:
-    fxt = Fixtures("backref")
-    fixture = fxt.get_anymarkup(fxt.path(request.param))
-    return Bundle(
-        git_commit="c",
-        git_commit_timestamp="t",
-        schemas=fixture["schemas"],
-        graphql=fixture["graphql"],
-        data=fixture["data"],
-        resources=fixture["resources"],
-    )
+@pytest.fixture
+def bundle(
+    bundle_fixture_factory: Callable[[str, str], Bundle],
+) -> Bundle:
+    return bundle_fixture_factory("backref", "bundle.yml")
 
 
-def test_simple_refs(bundle: Bundle):
+def test_simple_refs(bundle: Bundle) -> None:
     postprocess_bundle(bundle)
     expected = [
         {
             "path": "file-1-schema-1.yml",
             "datafileSchema": "schema-1.yml",
-            "type": "Schema_v1",
             "jsonpath": "simple_ref",
         },
         {
             "path": "file-1-schema-1.yml",
             "datafileSchema": "schema-1.yml",
-            "type": "Schema_v1",
             "jsonpath": "simple_object.simple_nested_ref",
         },
     ]
@@ -40,19 +32,17 @@ def test_simple_refs(bundle: Bundle):
     assert expected == resource.get("backrefs")
 
 
-def test_array_field_to_nested_refs(bundle: Bundle):
+def test_array_field_to_nested_refs(bundle: Bundle) -> None:
     postprocess_bundle(bundle)
     expected = [
         {
             "path": "file-1-schema-1.yml",
             "datafileSchema": "schema-1.yml",
-            "type": "Schema_v1",
             "jsonpath": "array_field_to_nested_refs.[0].simple_nested_ref",
         },
         {
             "path": "file-1-schema-1.yml",
             "datafileSchema": "schema-1.yml",
-            "type": "Schema_v1",
             "jsonpath": "array_field_to_nested_refs.[1].simple_nested_ref",
         },
     ]
@@ -61,7 +51,7 @@ def test_array_field_to_nested_refs(bundle: Bundle):
     assert expected == resource.get("backrefs")
 
 
-def test_embedded_schemas(bundle):
+def test_embedded_schemas(bundle: Bundle) -> None:
     """shows that resourceref detection works for embedded types ($ref)"""
     postprocess_bundle(bundle)
 
@@ -69,33 +59,29 @@ def test_embedded_schemas(bundle):
         {
             "path": "file-1-schema-1.yml",
             "datafileSchema": "schema-1.yml",
-            "type": "Schema_v1",
             "jsonpath": "schema_ref_field.simple_ref",
         },
         {
             "path": "file-1-schema-1.yml",
             "datafileSchema": "schema-1.yml",
-            "type": "Schema_v1",
             "jsonpath": "schema_ref_field.simple_object.simple_nested_ref",
         },
     ]
-    assert expected == bundle.resources.get("/resource-2.yml").get("backrefs")
+    assert expected == bundle.resources["/resource-2.yml"]["backrefs"]
 
 
-def test_one_of_refs(bundle: Bundle):
+def test_one_of_refs(bundle: Bundle) -> None:
     """this test shows that refs can be found in subtypes while the same field name can be a ref in one subtype but not in another"""
     postprocess_bundle(bundle)
     expected = [
         {
             "path": "file-1-schema-1.yml",
             "datafileSchema": "schema-1.yml",
-            "type": "Schema_v1",
             "jsonpath": "one_of_ref_array.[0].a_field",
         },
         {
             "path": "file-1-schema-1.yml",
             "datafileSchema": "schema-1.yml",
-            "type": "Schema_v1",
             "jsonpath": "one_of_ref_array.[2].a_field",
         },
     ]
@@ -104,20 +90,18 @@ def test_one_of_refs(bundle: Bundle):
     assert expected == resource.get("backrefs")
 
 
-def test_circular_ref_top_level_type(bundle: Bundle):
-    """shows that reference loops are dealth with an reference detection stops looking in other top level types"""
+def test_circular_ref_top_level_type(bundle: Bundle) -> None:
+    """shows that reference loops are dealt with a reference detection stops looking in other top level types"""
     postprocess_bundle(bundle)
     expected = [
         {
             "path": "file-2-another-schema-1.yml",
             "datafileSchema": "another-schema-1.yml",
-            "type": "AnotherSchema_v1",
             "jsonpath": "simple_ref",
         },
         {
             "path": "file-2-another-schema-1.yml",
             "datafileSchema": "another-schema-1.yml",
-            "type": "AnotherSchema_v1",
             "jsonpath": "simple_object.simple_nested_ref",
         },
     ]

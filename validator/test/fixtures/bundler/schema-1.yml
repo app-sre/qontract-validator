@@ -1,0 +1,10 @@
+$schema: "/metaschema-1.json"
+version: '1.0'
+additionalProperties: false
+properties:
+  $schema:
+    type: string
+    enum:
+    - "/schema-1.yml"
+  simple_field:
+    type: string

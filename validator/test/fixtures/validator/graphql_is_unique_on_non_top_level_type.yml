@@ -1,0 +1,120 @@
+schemas:
+  "/schema-1.yml":
+    $schema: "/metaschema-1.json"
+    version: '1.0'
+    additionalProperties: false
+    properties:
+      $schema:
+        type: string
+        enum:
+        - "/schema-1.yml"
+      $file_sha256sum:
+        type: string
+        description: sha256sum of the datafile
+      crossref_field:
+        "$ref": "/common-1.json#/definitions/crossref"
+        "$schemaRef": "/another-schema-1.yml"
+  "/another-schema-1.yml":
+    $schema: "/metaschema-1.json"
+    version: '1.0'
+    additionalProperties: false
+    properties:
+      $schema:
+        type: string
+        enum:
+        - "/another-schema-1.yml"
+      $file_sha256sum:
+        type: string
+        description: sha256sum of the datafile
+      another_simple_field:
+        type: string
+graphql:
+  $schema: "/app-interface/graphql-schemas-1.yml"
+  confs:
+  - name: Schema_v1
+    fields:
+    - name: crossref_field
+      type: AnotherSchema_v1
+  - name: AnotherSchema_v1
+    fields:
+    - name: another_simple_field
+      type: string
+      isUnique: true
+  - name: Query
+    fields:
+    - type: Schema_v1
+      name: schema_v1
+      datafileSchema: "/schema-1.yml"
+data:
+  /file-1-schema-1.yml:
+    $schema: /schema-1.yml
+    crossref_field:
+      $ref: /file-2-another-schema-1.yml
+    $file_sha256sum: "d485511a659995bb7d03e9af6942bbb63a4700f53411f247a6a6c2ea3b0386bf"
+  /file-2-another-schema-1.yml:
+    $schema: /another-schema-1.yml
+    another_simple_field: bla
+    $file_sha256sum: "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c"
+resources: {}
+expected_results:
+- kind: SCHEMA
+  filename: /common-1.json
+  result:
+    status: OK
+    schema_url: http://json-schema.org/draft-06/schema
+    summary: "OK: /common-1.json (http://json-schema.org/draft-06/schema)"
+- kind: SCHEMA
+  filename: /metaschema-1.json
+  result:
+    status: OK
+    schema_url: http://json-schema.org/draft-06/schema
+    summary: "OK: /metaschema-1.json (http://json-schema.org/draft-06/schema)"
+- kind: SCHEMA
+  filename: /app-interface/graphql-schemas-1.yml
+  result:
+    status: OK
+    schema_url: /metaschema-1.json
+    summary: "OK: /app-interface/graphql-schemas-1.yml (/metaschema-1.json)"
+- kind: SCHEMA
+  filename: /schema-1.yml
+  result:
+    status: OK
+    schema_url: /metaschema-1.json
+    summary: "OK: /schema-1.yml (/metaschema-1.json)"
+- kind: SCHEMA
+  filename: /another-schema-1.yml
+  result:
+    status: OK
+    schema_url: /metaschema-1.json
+    summary: "OK: /another-schema-1.yml (/metaschema-1.json)"
+- kind: FILE
+  filename: /file-1-schema-1.yml
+  result:
+    status: OK
+    schema_url: /schema-1.yml
+    summary: "OK: /file-1-schema-1.yml (/schema-1.yml)"
+- kind: FILE
+  filename: /file-2-another-schema-1.yml
+  result:
+    status: OK
+    schema_url: /another-schema-1.yml
+    summary: "OK: /file-2-another-schema-1.yml (/another-schema-1.yml)"
+- kind: FILE
+  filename: graphql-schemas/schema.yml
+  result:
+    status: OK
+    schema_url: /app-interface/graphql-schemas-1.yml
+    summary: "OK: graphql-schemas/schema.yml (/app-interface/graphql-schemas-1.yml)"
+- kind: SCHEMA
+  filename: graphql-schemas/schema.yml
+  result:
+    status: ERROR
+    reason: IS_UNIQUE_ON_NON_TOP_LEVEL_TYPE
+    error: "isUnique set on AnotherSchema_v1.another_simple_field, which is not a top-level type, add datafile to AnotherSchema_v1 if there is a datafile mapping to it."
+    summary: "ERROR: graphql-schemas/schema.yml"
+- kind: REF
+  filename: /file-1-schema-1.yml
+  result:
+    status: OK
+    schema_url: '/schema-1.yml'
+    summary: "OK: /file-1-schema-1.yml (/file-2-another-schema-1.yml) (/schema-1.yml)"
