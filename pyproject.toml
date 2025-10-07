@@ -8,7 +8,7 @@ authors = [
 license = { text = "Apache 2.0" }
 requires-python = "~= 3.12.5"
 dependencies = [
-    "PyYAML==6.0.2",
+    "PyYAML==6.0.3",
     "jsonschema==3.2.0",
 ]
 
@@ -19,12 +19,12 @@ documentation = "https://github.com/app-sre/qontract-validator"
 
 [dependency-groups]
 dev = [
-    "mypy==1.17.1",
-    "pytest-cov==6.2.1",
-    "pytest==8.4.1",
-    "ruff==0.12.10",
-    "types-PyYAML==6.0.12.20250822",
-    "types-jsonschema==3.2.0",
+    "mypy==1.18.2",
+    "pytest-cov==6.3.0",
+    "pytest==8.4.2",
+    "ruff==0.13.3",
+    "types-PyYAML==6.0.12.20250915",
+    "types-jsonschema==3.2.1",
 ]
 
 [project.scripts]
