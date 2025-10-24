@@ -24,7 +24,7 @@ dev = [
     "pytest==8.4.2",
     "ruff==0.14.2",
     "types-PyYAML==6.0.12.20250915",
-    "types-jsonschema==3.2.1",
+    "types-jsonschema==4.25.1.20251009",
 ]
 
 [project.scripts]
