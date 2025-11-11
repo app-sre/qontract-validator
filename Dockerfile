@@ -1,7 +1,7 @@
 ##############
 # base stage #
 ##############
-FROM registry.access.redhat.com/ubi9/python-312-minimal:9.6-1762316373@sha256:0ee314bb4fe191ca657f4b03cd2da6e8efac1d054e0336087716c30898e394e1 AS base
+FROM registry.access.redhat.com/ubi9/python-312-minimal:9.7-1762200660@sha256:167f03f5b32b76285490bd6682721256a863e5ae222a859f82be72935d30780a AS base
 
 COPY LICENSE /licenses/LICENSE
 
