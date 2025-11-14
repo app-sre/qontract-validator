@@ -13,10 +13,6 @@ build:
 	@docker build --target prod -t $(IMAGE_NAME):latest -f Dockerfile .
 	@docker tag $(IMAGE_NAME):latest $(IMAGE_NAME):$(IMAGE_TAG)
 
-push:
-	@docker --config=$(DOCKER_CONF) push $(IMAGE_NAME):latest
-	@docker --config=$(DOCKER_CONF) push $(IMAGE_NAME):$(IMAGE_TAG)
-
 _test:
 	uv lock --locked
 	uv run ruff check --no-fix
