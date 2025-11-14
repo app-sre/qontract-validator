@@ -21,8 +21,8 @@ documentation = "https://github.com/app-sre/qontract-validator"
 dev = [
     "mypy==1.18.2",
     "pytest-cov==6.3.0",
-    "pytest==9.0.0",
-    "ruff==0.14.4",
+    "pytest==9.0.1",
+    "ruff==0.14.5",
     "types-PyYAML==6.0.12.20250915",
     "types-jsonschema==3.2.1",
 ]
