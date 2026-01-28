@@ -64,6 +64,7 @@ def node_key(node: Node) -> str:
         "simple_field.yml",
         "simple_object_field.yml",
         "simple_ref_field.yml",
+        "missing_graphql_type_field.yml",
     ],
 )
 def test_traverse_data(
