@@ -195,7 +195,9 @@ def _next_dict_graphql(
         return GraphqlInfo(graphql_type, graphql_field)
 
     if graphql_field is None:
-        return GraphqlInfo(graphql_type, graphql_type.get_field(field_name))
+        if new_graphql_field := graphql_type.get_field(field_name):
+            return GraphqlInfo(graphql_type, new_graphql_field)
+        return GraphqlInfo(None, None)
 
     if (new_graphql_type_name := graphql_field.get("type")) and (
         new_graphql_type := node.bundle.graphql_lookup.get_by_type_name(
