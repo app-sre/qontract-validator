@@ -185,7 +185,7 @@ def validate_schema(
         )
 
     try:
-        with resolver.in_scope(scope):  # type: ignore[func-returns-value]
+        with resolver.in_scope(scope):  # type: ignore[func-returns-value,attr-defined]
             validator = Draft6Validator(meta_schema, resolver=resolver)
             validator.validate(schema)
     except ValidationError as e:
@@ -435,7 +435,7 @@ def validate_file(
         )
 
     try:
-        with resolver.in_scope(scope):  # type: ignore[func-returns-value]
+        with resolver.in_scope(scope):  # type: ignore[func-returns-value,attr-defined]
             validator = Draft6Validator(schema, resolver=resolver)
             validator.validate(data)
     except ValidationError as e:
