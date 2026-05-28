@@ -1,13 +1,17 @@
 import json
-from collections.abc import Callable
 from dataclasses import asdict
 from io import StringIO
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
-from validator.bundle import Bundle
 from validator.bundler import main
 from validator.test.conftest import TEST_GIT_COMMIT, TEST_GIT_COMMIT_TIMESTAMP
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
+
+    from validator.bundle import Bundle
 
 
 def test_bundler_main(

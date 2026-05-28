@@ -1,16 +1,19 @@
 import json
-from collections.abc import Callable
 from dataclasses import asdict
 from io import StringIO
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import patch
 
 import pytest
 
-from validator.bundle import Bundle
 from validator.utils import json_dump
 from validator.validator import ValidationResult, main, validate_bundle
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
+
+    from validator.bundle import Bundle
 
 
 @pytest.fixture

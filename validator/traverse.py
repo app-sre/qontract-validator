@@ -1,9 +1,11 @@
-from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any, NamedTuple, Self
+from typing import TYPE_CHECKING, Any, NamedTuple, Self
 
 from validator.bundle import RESOURCE_REF, Bundle, GraphqlField, GraphqlType
 from validator.jsonpath import JSONPath, JSONPathField, JSONPathIndex
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 
 @dataclass(frozen=True)

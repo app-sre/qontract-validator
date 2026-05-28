@@ -1,10 +1,12 @@
-from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
 from validator.bundle import Bundle
 from validator.test.fixtures import Fixtures
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 TEST_GIT_COMMIT = "git-commit-sha"
 TEST_GIT_COMMIT_TIMESTAMP = "git-commit-timestamp"
