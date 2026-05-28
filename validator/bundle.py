@@ -1,15 +1,18 @@
 import json
-from collections.abc import Iterable, Mapping
 from dataclasses import (
     dataclass,
 )
 from functools import cached_property
 from typing import (
     IO,
+    TYPE_CHECKING,
     Any,
     NotRequired,
     TypedDict,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
 
 RESOURCE_REF = "/common-1.json#/definitions/resourceref"
 

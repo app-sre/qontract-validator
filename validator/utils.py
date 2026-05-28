@@ -1,10 +1,12 @@
 import hashlib
 import json
 from enum import StrEnum
-from pathlib import Path, PurePath
-from typing import IO, Any
+from typing import IO, TYPE_CHECKING, Any
 
 import yaml
+
+if TYPE_CHECKING:
+    from pathlib import Path, PurePath
 
 JSON_COMPACT_SEPARATORS = (",", ":")
 

@@ -1,9 +1,13 @@
-from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import pytest
 
-from validator.bundle import Bundle
 from validator.postprocess import postprocess_bundle
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from validator.bundle import Bundle
 
 
 @pytest.mark.parametrize(

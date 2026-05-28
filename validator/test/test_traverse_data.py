@@ -1,14 +1,17 @@
-from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from validator.bundle import Bundle
 from validator.jsonpath import (
     build_jsonpath,
     parse_jsonpath,
 )
 from validator.traverse import Node, traverse_data
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from validator.bundle import Bundle
 
 
 def parse_node(node: dict[str, Any], bundle: Bundle) -> Node:
