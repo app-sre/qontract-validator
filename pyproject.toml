@@ -22,8 +22,8 @@ dev = [
     "mypy==2.1.0",
     "pytest-cov==7.1.0",
     "pytest==9.0.3",
-    "ruff==0.15.12",
-    "types-PyYAML==6.0.12.20260408",
+    "ruff==0.15.14",
+    "types-PyYAML==6.0.12.20260518",
     "types-jsonschema==3.2.1",
 ]
 
