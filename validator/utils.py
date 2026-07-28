@@ -38,7 +38,7 @@ def load_yaml(data: str | bytes) -> dict:
 
 
 def json_dumps(
-    data: Any,  # noqa: ANN401,
+    data: Any,  # ruff: ignore[any-type],
     *,
     compact: bool = False,
     indent: int | None = None,
@@ -54,7 +54,7 @@ def json_dumps(
 
 
 def json_dump(
-    data: Any,  # noqa: ANN401
+    data: Any,  # ruff: ignore[any-type]
     out: IO,
     *,
     compact: bool = False,

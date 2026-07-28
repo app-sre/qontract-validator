@@ -55,14 +55,14 @@ class GraphqlType:
             return self.interface_resolve.get("field")
         return None
 
-    def resolve_interface_field_value(self, data: Any) -> Any:  # noqa: ANN401
+    def resolve_interface_field_value(self, data: Any) -> Any:  # ruff: ignore[any-type]
         if (field_name := self.interface_resolve_field_name()) and isinstance(
             data, dict
         ):
             return data.get(field_name)
         return None
 
-    def resolve_interface_type_name(self, data: Any) -> str | None:  # noqa: ANN401
+    def resolve_interface_type_name(self, data: Any) -> str | None:  # ruff: ignore[any-type]
         if (
             self.interface_resolve
             and (field_map := self.interface_resolve.get("fieldMap"))

@@ -139,7 +139,7 @@ def _traverse_node(node: Node) -> Iterator[Node]:
 def _next_dict_node(
     node: Node,
     key: str,
-    value: Any,  # noqa: ANN401
+    value: Any,  # ruff: ignore[any-type]
 ) -> Node | None:
     if key == "$schema":
         return None
@@ -158,7 +158,7 @@ def _next_dict_node(
 def _next_list_node(
     node: Node,
     index: int,
-    value: Any,  # noqa: ANN401
+    value: Any,  # ruff: ignore[any-type]
 ) -> Node:
     schema = node.schema.get("items") if node.schema else None
     return _next_node(
@@ -213,7 +213,7 @@ def _next_dict_graphql(
 def _next_dict_schema(
     node: Node,
     key: str,
-) -> Any:  # noqa: ANN401
+) -> Any:  # ruff: ignore[any-type]
     """
     Resolve the next schema for a given dict node and key.
 
@@ -235,8 +235,8 @@ def _next_dict_schema(
 
 def _next_node(
     node: Node,
-    schema: Any,  # noqa: ANN401
-    data: Any,  # noqa: ANN401
+    schema: Any,  # ruff: ignore[any-type]
+    data: Any,  # ruff: ignore[any-type]
     jsonpaths: list[JSONPath],
     graphql_type: GraphqlType | None = None,
     graphql_field: GraphqlField | None = None,
@@ -306,7 +306,7 @@ def _next_node(
 def _resolve_graphql_interface_type(
     graphql_type: GraphqlType | None,
     bundle: Bundle,
-    data: Any,  # noqa: ANN401
+    data: Any,  # ruff: ignore[any-type]
 ) -> GraphqlType | None:
     """
     Resolve the GraphQL interface type based on the data.
@@ -330,9 +330,9 @@ def _resolve_graphql_interface_type(
 
 def _resolve_schema(
     schema_path: str | None,
-    schema: Any,  # noqa: ANN401
+    schema: Any,  # ruff: ignore[any-type]
     bundle: Bundle,
-    data: Any,  # noqa: ANN401
+    data: Any,  # ruff: ignore[any-type]
     graphql_type: GraphqlType | None,
 ) -> SchemaInfo:
     """
@@ -415,7 +415,7 @@ def _find_one_of_schema_by_enum(
     root_schema_info: SchemaInfo,
     schemas: list[Any],
     field: str,
-    field_value: Any,  # noqa: ANN401
+    field_value: Any,  # ruff: ignore[any-type]
     bundle: Bundle,
 ) -> SchemaInfo:
     for schema in schemas:
@@ -447,8 +447,8 @@ def _find_one_of_schema_by_enum(
 
 def _find_one_of_schema_by_crossref_data(
     schemas: list[dict[str, Any]],
-    data: Any,  # noqa: ANN401
-) -> Any:  # noqa: ANN401
+    data: Any,  # ruff: ignore[any-type]
+) -> Any:  # ruff: ignore[any-type]
     if isinstance(data, dict) and "$ref" in data:
         return next(schema for schema in schemas if "$schemaRef" in schema)
     return next(schema for schema in schemas if "$schemaRef" not in schema)
