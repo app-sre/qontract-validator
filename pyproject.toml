@@ -19,10 +19,10 @@ documentation = "https://github.com/app-sre/qontract-validator"
 
 [dependency-groups]
 dev = [
-    "mypy==2.3.1",
+    "mypy==2.4.0",
     "pytest-cov==7.1.0",
     "pytest==9.1.1",
-    "ruff==0.16.9",
+    "ruff==0.16.10",
     "types-PyYAML==6.0.12.20260906",
     "types-jsonschema==3.2.1",
 ]
