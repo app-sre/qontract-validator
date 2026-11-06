@@ -4,7 +4,7 @@ from io import StringIO
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
-from validator.bundler import main
+from validator.bundler import bundle_graphql, main
 from validator.test.conftest import TEST_GIT_COMMIT, TEST_GIT_COMMIT_TIMESTAMP
 
 if TYPE_CHECKING:
@@ -62,3 +62,18 @@ def test_bundler_main(
 
     output = captured_output.getvalue()
     assert json.loads(output) == asdict(expected_bundle)
+
+
+def test_bundle_graphql_sorts_confs_by_name(tmp_path: Path) -> None:
+    graphql_schema_file = tmp_path / "schema.yml"
+    graphql_schema_file.write_text("""
+$schema: "/app-interface/graphql-schemas-1.yml"
+confs:
+- name: Zeta
+- name: Alpha
+- name: Mike
+""")
+
+    content = bundle_graphql(graphql_schema_file)
+
+    assert [conf["name"] for conf in content["confs"]] == ["Alpha", "Mike", "Zeta"]
