@@ -130,6 +130,8 @@ def bundle_graphql(graphql_schema_file: Path) -> dict:
         msg = f"could not find file {graphql_schema_file}"
         raise FileNotFoundError(msg)
     content, _ = parse_anymarkup_file(graphql_schema_file)
+    if confs := content.get("confs"):
+        content["confs"] = sorted(confs, key=lambda conf: conf.get("name") or "")
     return content
 
 
