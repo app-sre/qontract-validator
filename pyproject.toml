@@ -8,7 +8,7 @@ authors = [
 license = { text = "Apache 2.0" }
 requires-python = "~= 3.14.0"
 dependencies = [
-    "PyYAML==6.0.3",
+    "PyYAML==6.0.4",
     "jsonschema==3.2.0",
 ]
 
@@ -23,7 +23,7 @@ dev = [
     "pytest-cov==7.1.0",
     "pytest==9.2.0",
     "ruff==0.17.6",
-    "types-PyYAML==6.0.12.20261113",
+    "types-PyYAML==6.0.12.20261122",
     "types-jsonschema==3.2.1",
 ]
 
